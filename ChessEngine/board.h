@@ -9,7 +9,7 @@
 
 
 
-class Board
+class Board 
 {
 private:
     /* data */
