@@ -296,13 +296,15 @@ rest:
     }
     this->last_move_origin = -1;
     this->last_move_target = -1;
-    std::cout << fen[i] << std::endl;
+    //std::cout << fen[i] << std::endl;
+    /*
     for (int j = 0; j < 4; j++)
     {
         std::cout << this->castling_rights[j];
     }
     std::cout << std::endl;
     std::cout << "en passant target: " + std::to_string(this->en_passant_target_index) << std::endl;
+    */
     for (int i = 0; i < 64; i++)
     {
         this->pins[i] = 0;

@@ -24,64 +24,33 @@ using namespace std::chrono;
  * @param argv array of command line arguments
  * @return int
  */
+
+void perft(Board *b, int depth);
+void search(Board *b, int depth);
+void uci_console();
+
 int main(int argc, char** argv)
 {
     Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    cout << board->pos_as_str() << endl;
-    cout << board->get_last_move() << endl;
-    cout << board->get_attacked_squares() << endl;
-
-    list<Board*>* moves = board->get_legal_moves();
-    cout << to_string(moves->size()) + " moves found" << endl;
-    Search* s = new Search();
-    auto start = high_resolution_clock::now();
-
-    // Call the function, here sort()
-    double eval = s->evaluate_iterative_deepening(board, 8);
-    
-
-    // Get ending timepoint
-    auto stop = high_resolution_clock::now();
-    cout.precision(2);
-    cout << "eval: " << eval << endl;
-    // Get duration. Substart timepoints to 
-    // get durarion. To cast it to proper unit
-    // use duration cast method
-    auto duration = duration_cast<microseconds>(stop - start);
-
-    cout << "Time taken by function: "
-        << duration.count() << " microseconds" << endl;
-    
-    delete s;
-    cout << "running move_gen --" << endl;
-
-    for (Board* const& i : *moves)
-    {
-        Movegen* m_2 = new Movegen(i);
-        //std::cout << i->pos_as_str() << std::endl;
-        cout << i->get_last_move() + ": " + to_string(m_2->generate_moves(2)) << endl;
-        delete m_2;
-        //cout << i->get_last_move() << endl;
-    }
-
-    Movegen* m = new Movegen(board);
-    int num_moves = m->generate_moves(1);
-    cout << to_string(num_moves) + " moves found" << endl;
-    num_moves = m->generate_moves(2);
-    cout << to_string(num_moves) + " moves found" << endl;
-
-
-
-    delete m;
-
-    delete board;
-    for (Board* const& i : *moves)
-    {
-        delete i;
-    }
-
-    delete moves;
-
+    perft(board, 3);
     _CrtDumpMemoryLeaks();
     return 0;
+}
+
+void perft(Board* b, int depth) {
+    std::list<Board*>* moves = b->possible_moves();
+    int total = 0;
+    for (Board *const &move : *moves) {
+        Movegen* gen = new Movegen(move);
+        int num_moves = gen->generate_moves(depth - 1);
+        total += num_moves;
+        std::cout << move->get_last_move() << ": " << num_moves << std::endl;
+        delete gen;
+    }
+    for (Board *const &move : *moves) {
+        delete move;
+    }
+    std::cout << "Nodes searched: " << total << std::endl;
+    std::cout << std::endl;
+    delete moves;
 }
