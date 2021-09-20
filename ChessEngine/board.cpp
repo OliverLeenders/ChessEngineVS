@@ -59,6 +59,7 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
  */
 Board::Board(std::string fen)
 {
+    // TODO: fix leak
     for (int i = 0; i < 64; i++)
     {
         this->position[i] = new Piece(0);
@@ -1916,7 +1917,7 @@ void Board::compute_pin_rays()
     }
 }
 
-bool Board::is_capture(Board* b)
+bool Board::is_not_capture(Board* b)
 {
     if (b->prev_pos->position[b->last_move_target]->is_empty()) {
         delete b;
@@ -1928,7 +1929,7 @@ bool Board::is_capture(Board* b)
 std::list<Board*>* Board::get_legal_captures()
 {
     std::list<Board*>* moves = this->get_legal_moves();
-    moves->remove_if(is_capture);
+    moves->remove_if(is_not_capture);
     return moves;
 }
 /*

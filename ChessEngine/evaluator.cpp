@@ -23,6 +23,8 @@ Evaluator::~Evaluator()
 {
 	delete[] this->zobrist_base_numbers;
 	this->zobrist_hashmap->clear();
+	this->prev_zobrist_hashmap->clear();
+	delete this->prev_zobrist_hashmap;
 	delete this->zobrist_hashmap;
 	return;
 }

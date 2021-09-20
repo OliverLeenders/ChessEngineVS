@@ -1,3 +1,12 @@
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#ifdef _DEBUG
+#ifndef DBG_NEW
+#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+#define new DBG_NEW
+#endif
+#endif
 #ifndef Board_H
 #define Board_H
 
@@ -38,7 +47,7 @@ private:
     void filter_illegal_moves(std::list<Board*>* moves);
     bool en_passant_illegal();
     static bool compare(Board* b1, Board* b2);
-    static bool is_capture(Board* b);
+    static bool is_not_capture(Board* b);
     static bool contains_both_kings(Board* b);
 
 public:
