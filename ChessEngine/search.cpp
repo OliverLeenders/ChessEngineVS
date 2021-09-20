@@ -339,7 +339,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
         prev_PV = PV;
         e->zobrist_hashmap->clear();
     }
-    std::cout << "bestmove " << best_move << std::endl;
+    std::cout << "bestmove " << best_move << std::endl << std::endl;
     delete e;
     for (Board* const& i : *prev_PV)
     {

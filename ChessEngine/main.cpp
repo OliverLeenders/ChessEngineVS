@@ -11,12 +11,10 @@
 #include "movegen.h"
 #include "search.h"
 #include <chrono>
+#include <vector>
 #include <iostream>
 
 
-
-using namespace std;
-using namespace std::chrono;
 /**
  * @brief Runs the program
  *
@@ -27,15 +25,12 @@ using namespace std::chrono;
 
 void perft(Board* b, int depth);
 void search(Board* b, int depth);
+void split_string(std::vector<std::string>* v, std::string s);
 void uci_console();
 
 int main(int argc, char** argv)
 {
-	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-	perft(board, 3);
-	search(board, 3);
-	delete board;
-	
+	uci_console();
 
 
 	_CrtDumpMemoryLeaks();
@@ -68,7 +63,66 @@ void search(Board* b, int depth) {
 
 void uci_console() {
 	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	std::cout << "UCI console -- Ready to take commands..." << std::endl;
+	while (true) {
+		std::string line = "";
+		std::getline(std::cin, line);
+		std::vector<std::string>* split = new std::vector<std::string>;
+		split_string(split, line);
 
+		if (split->size() != 0) {
+			if ((*split)[0] == "quit") {
+				split->clear();
+				delete split;
+				break;
+			}
+			else if (split->size() >= 2) {
+				if ((*split)[0] == "position") {
+					if ((*split)[1] == "startpos") {
+						delete board;
+						board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+					}
+					else if (split->size() >= 3) {
+						if ((*split)[1] == "fen") {
+							delete board;
+							board = new Board((*split)[2]);
+						}
+					}
+				}
+				if ((*split)[0] == "go") {
+					if ((*split)[1] == "perft") {
+						if (split->size() == 3) {
+							int depth = std::stoi((*split)[2]);
+							perft(board, depth);
+						}
+					} else if ((*split)[1] == "depth") {
+						if (split->size() == 3) {
+							int depth = std::stoi((*split)[2]);
+							search(board, depth);
+						}
+					}
+				}
+			}
+		}
+
+
+		delete split;
+	}
 
 	delete board;
+}
+
+void split_string(std::vector<std::string>* v, std::string s) {
+	std::string tmp = "";
+	for (int i = 0; i < s.length(); i++) {
+		if (s[i] != ' ') {
+			tmp.push_back(s[i]);
+		}
+		else {
+			v->push_back(tmp);
+			tmp = "";
+		}
+	}
+	v->push_back(tmp);
+
 }
