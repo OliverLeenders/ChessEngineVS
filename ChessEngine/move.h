@@ -22,4 +22,8 @@ private:
 	int char_str_to_int(char c);
 };
 
+class move
+{
+};
+
 #endif

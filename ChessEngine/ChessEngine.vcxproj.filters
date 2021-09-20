@@ -33,6 +33,9 @@
     <ClCompile Include="evaluator.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="move.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="board.h">
@@ -49,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="evaluator.h">
       <Filter>Quelldateien</Filter>
+    </ClInclude>
+    <ClInclude Include="move.h">
+      <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
