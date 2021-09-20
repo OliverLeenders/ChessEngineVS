@@ -1,8 +1,9 @@
 #include "move.h"
 
-Move::Move(int set_origin, int set_target, bool set_is_promotion, unsigned set_promotion_type) {
+Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, unsigned set_promotion_type) {
 	this->origin = set_origin;
 	this->target = set_target;
+	this->is_capture = set_is_capture;
 	this->is_promotion = set_is_promotion;
 	this->promotion_type = set_promotion_type;
 }
