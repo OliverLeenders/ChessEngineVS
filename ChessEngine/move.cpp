@@ -1,5 +1,14 @@
 #include "move.h"
 
+/**
+ * Default constructor. Creates Move object from the arguments.
+ * 
+ * \param set_origin move origin square
+ * \param set_target move target square
+ * \param set_is_capture whether move is a capture
+ * \param set_is_promotion whether move is a promotion
+ * \param set_promotion_type type to promote to (0 if no promotion)
+ */
 Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, unsigned set_promotion_type) {
 	this->origin = set_origin;
 	this->target = set_target;
@@ -8,6 +17,12 @@ Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_prom
 	this->promotion_type = set_promotion_type;
 }
 
+/**
+ * Generates a type (white piece) from lowercase letter.
+ * 
+ * \param t lowercase type letter
+ * \return  type of white piece
+ */
 unsigned Move::char_to_type(char t) {
 	switch (t)
 	{
@@ -24,22 +39,38 @@ unsigned Move::char_to_type(char t) {
 	}
 }
 
-Move::Move(std::string move_str, bool side_to_move) {
+/**
+ * Constructor from move string0.
+ * 
+ * \param move_str move string (e.g. "g1e3" or "")
+ * \param side_to_move 
+ * \param set_is_capture
+ */
+Move::Move(std::string move_str, bool side_to_move, bool set_is_capture) {
 	if (move_str.length() == 5) {
 		this->is_promotion = true;
 		this->promotion_type = this->char_to_type(move_str.at(4));
-		if (!side_to_move) {
+		this->is_capture = set_is_capture;
+
+		if (!side_to_move && this->is_promotion) {
 			this->promotion_type++;
 		}
 	}
 	else {
 		this->is_promotion = false;
 		this->promotion_type = 0;
+		this->is_capture = set_is_capture;
 	}
 	this->origin = char_str_to_int(move_str.at(0)) + 8 * num_str_to_int(move_str.at(1));
 	this->target = char_str_to_int(move_str.at(2)) + 8 * num_str_to_int(move_str.at(3));
 }
 
+/**
+ * Generate integer from char ('1' = 0, ... , '8' = 7).
+ * 
+ * \param num char to convert
+ * \return converted char
+ */
 int Move::num_str_to_int(char num) {
 	switch (num)
 	{
@@ -64,6 +95,12 @@ int Move::num_str_to_int(char num) {
 	}
 }
 
+/**
+ * Create integer from char ('a' = 0, ... , 'h' = 7).
+ * 
+ * \param c char to convert
+ * \return converted char
+ */
 int Move::char_str_to_int(char c) {
 	switch (c)
 	{
@@ -88,8 +125,18 @@ int Move::char_str_to_int(char c) {
 	}
 }
 
+/**
+ * Default destructor.
+ * 
+ * \return 
+ */
 Move::~Move() {};
 
+/**
+ * Generates a string representation of a move according to UCI specification ("g1e3" or "e7e8q").
+ * 
+ * \return string representation
+ */
 std::string Move::to_string() {
 	std::string str = "";
 	str += this->index_to_string(this->origin);
@@ -100,6 +147,12 @@ std::string Move::to_string() {
 	return str;
 }
 
+/**
+ * Create string representation of index (0 = "a1", ... , 63 = "h8").
+ * 
+ * \param i index
+ * \return string representation
+ */
 std::string Move::index_to_string(int i)
 {
 	std::string str = "";
@@ -109,6 +162,12 @@ std::string Move::index_to_string(int i)
 	return str;
 }
 
+/**
+ * creates a lowecase letter (as a string) from a tpe (3 = "q", ...).
+ * 
+ * \param type type to convert
+ * \return letter of type
+ */
 std::string Move::type_to_lowercase_letter(unsigned type) {
 	switch (type)
 	{

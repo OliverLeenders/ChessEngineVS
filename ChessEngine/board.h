@@ -14,6 +14,7 @@
 #include <string>
 #include <string.h>
 #include <list>
+#include "move.h"
 //#include "evaluator.h"
 
 
@@ -50,6 +51,10 @@ private:
     static bool is_not_capture(Board* b);
     static bool contains_both_kings(Board* b);
 
+    std::list<bool*>* stack_castling_rights;
+    std::list<int>* stack_en_passant_target_index;
+    std::list<unsigned>* stack_captures;
+
 public:
     Board();
     int white_king_pos = -1;
@@ -74,7 +79,7 @@ public:
     Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
     void switch_move();
     void set_last_move(std::string set_move);
-    int set_piece(unsigned type, int pos, bool set_moved);
+    int set_piece(unsigned type, int pos);
     std::string pos_as_str();
     std::string get_attacked_squares();
     std::list<Board*>* possible_moves();
@@ -91,6 +96,10 @@ public:
     Board* clone();
     bool equals(Board* b);
     bool white_to_move;
+
+    void make_move(Move m);
+    void unmake_move();
+
     ~Board();
 };
 

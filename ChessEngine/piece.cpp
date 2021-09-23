@@ -1,14 +1,18 @@
 #include "Piece.h"
 
+/**
+ * Default constructor. Sets the piece type.
+ * 
+ * \param set_type tpe of the piece
+ */
 Piece::Piece(unsigned set_type)
 {
     this->type = set_type;
 }
 
-int Piece::set_piece_type(unsigned t, bool set_moved)
+int Piece::set_piece_type(unsigned t)
 {
     this->type = t;
-    this->moved = set_moved;
     return t;
 }
 
@@ -35,14 +39,9 @@ bool Piece::is_empty()
 Piece* Piece::clone()
 {
     Piece* p = new Piece(this->type);
-    p->moved = this->moved;
     return p;
 }
 
-bool Piece::has_already_moved()
-{
-    return this->moved;
-}
 
 char Piece::piece_to_char()
 {

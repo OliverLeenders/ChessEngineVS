@@ -16,7 +16,6 @@ class Piece
 private:
     /* data */
     unsigned type : 4;
-    bool moved;
     /**
      * no Piece:        0
      * king white:      1
@@ -35,12 +34,10 @@ private:
 public:
     Piece(unsigned set_type);
     char piece_to_char();
-    int set_piece_type(unsigned t, bool set_moved);
+    int set_piece_type(unsigned t);
     unsigned get_type();
     bool is_white();
     bool is_empty();
-    bool has_already_moved();
-    void set_already_moved();
     bool is_black();
     Piece* clone();
     double value();

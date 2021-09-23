@@ -76,7 +76,7 @@ Board::Board(std::string fen)
             pos_index -= 8;
             break;
         case 'K':
-            this->position[pos_index]->set_piece_type(1, false);
+            this->position[pos_index]->set_piece_type(1);
             this->white_king_pos = pos_index;
             if (pos_index % 8 != 7)
             {
@@ -84,7 +84,7 @@ Board::Board(std::string fen)
             }
             break;
         case 'k':
-            this->position[pos_index]->set_piece_type(2, false);
+            this->position[pos_index]->set_piece_type(2);
             this->black_king_pos = pos_index;
             if (pos_index % 8 != 7)
             {
@@ -92,77 +92,77 @@ Board::Board(std::string fen)
             }
             break;
         case 'Q':
-            this->position[pos_index]->set_piece_type(3, false);
+            this->position[pos_index]->set_piece_type(3);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'q':
-            this->position[pos_index]->set_piece_type(4, false);
+            this->position[pos_index]->set_piece_type(4);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'R':
-            this->position[pos_index]->set_piece_type(5, false);
+            this->position[pos_index]->set_piece_type(5);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'r':
-            this->position[pos_index]->set_piece_type(6, false);
+            this->position[pos_index]->set_piece_type(6);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'B':
-            this->position[pos_index]->set_piece_type(7, false);
+            this->position[pos_index]->set_piece_type(7);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'b':
-            this->position[pos_index]->set_piece_type(8, false);
+            this->position[pos_index]->set_piece_type(8);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'N':
-            this->position[pos_index]->set_piece_type(9, false);
+            this->position[pos_index]->set_piece_type(9);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'n':
-            this->position[pos_index]->set_piece_type(10, false);
+            this->position[pos_index]->set_piece_type(10);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'P':
-            this->position[pos_index]->set_piece_type(11, false);
+            this->position[pos_index]->set_piece_type(11);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case 'p':
-            this->position[pos_index]->set_piece_type(12, false);
+            this->position[pos_index]->set_piece_type(12);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
             }
             break;
         case '1':
-            this->position[pos_index]->set_piece_type(0, false);
+            this->position[pos_index]->set_piece_type(0);
             if (pos_index % 8 != 7)
             {
                 pos_index++;
@@ -171,7 +171,7 @@ Board::Board(std::string fen)
         case '2':
             for (int j = 0; j < 2; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -181,7 +181,7 @@ Board::Board(std::string fen)
         case '3':
             for (int j = 0; j < 3; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -191,7 +191,7 @@ Board::Board(std::string fen)
         case '4':
             for (int j = 0; j < 4; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -201,7 +201,7 @@ Board::Board(std::string fen)
         case '5':
             for (int j = 0; j < 5; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -211,7 +211,7 @@ Board::Board(std::string fen)
         case '6':
             for (int j = 0; j < 6; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -221,7 +221,7 @@ Board::Board(std::string fen)
         case '7':
             for (int j = 0; j < 7; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -231,7 +231,7 @@ Board::Board(std::string fen)
         case '8':
             for (int j = 0; j < 8; j++)
             {
-                this->position[pos_index]->set_piece_type(0, false);
+                this->position[pos_index]->set_piece_type(0);
                 if (pos_index % 8 != 7)
                 {
                     pos_index++;
@@ -323,10 +323,10 @@ rest:
  * @param pos
  * @return int
  */
-int Board::set_piece(unsigned type, int pos, bool set_moved)
+int Board::set_piece(unsigned type, int pos)
 {
     //std::cout << "type: " + std::to_string(type) + ", pos: " + std::to_string(pos) + ", moved: " + std::to_string(set_moved) << std::endl;
-    this->position[pos]->set_piece_type(type, set_moved);
+    this->position[pos]->set_piece_type(type);
     return 0;
 }
 /**
@@ -2003,7 +2003,7 @@ void Board::add_pawn_moves(std::list<Board*>* moves, int i)
         {
             move_with_offset(moves, i, i + 8);
         }
-        if (i < 16 && (!this->position[i]->has_already_moved()) && (this->position[i + 16]->is_empty()) && (this->position[i + 8]->is_empty()) && (this->pins[i] == 0 || this->pins[i] == 3 || this->pins[i] == 4) && ((this->num_checks == 1 && this->checks[i + 16]) || this->num_checks == 0))
+        if (i < 16 && (this->position[i + 16]->is_empty()) && (this->position[i + 8]->is_empty()) && (this->pins[i] == 0 || this->pins[i] == 3 || this->pins[i] == 4) && ((this->num_checks == 1 && this->checks[i + 16]) || this->num_checks == 0))
         {
             move_with_offset(moves, i, i + 16);
             moves->back()->en_passant_target_index = i + 8;
@@ -2062,7 +2062,7 @@ void Board::add_pawn_moves(std::list<Board*>* moves, int i)
         {
             move_with_offset(moves, i, i - 8);
         }
-        if (i >= 48 && (!this->position[i]->has_already_moved()) && (this->position[i - 16]->is_empty()) && (this->position[i - 8]->is_empty()) && (this->pins[i] == 0 || this->pins[i] == 3 || this->pins[i] == 4) && ((this->num_checks == 1 && this->checks[i - 16]) || this->num_checks == 0))
+        if (i >= 48 && (this->position[i - 16]->is_empty()) && (this->position[i - 8]->is_empty()) && (this->pins[i] == 0 || this->pins[i] == 3 || this->pins[i] == 4) && ((this->num_checks == 1 && this->checks[i - 16]) || this->num_checks == 0))
         {
             move_with_offset(moves, i, i - 16);
             moves->back()->en_passant_target_index = i - 8;
@@ -2250,16 +2250,16 @@ void Board::move_en_passant(std::list<Board*>* moves, int i, int j)
 
     Board* move = this->clone();
     move->switch_move();
-    move->set_piece(0, i, false);
+    move->set_piece(0, i);
     if (this->position[i]->is_white())
     {
-        move->set_piece(0, en_passant_target_index - 8, false);
+        move->set_piece(0, en_passant_target_index - 8);
     }
     else
     {
-        move->set_piece(0, en_passant_target_index + 8, false);
+        move->set_piece(0, en_passant_target_index + 8);
     }
-    move->set_piece(this->position[i]->get_type(), j, true);
+    move->set_piece(this->position[i]->get_type(), j);
     std::string move_str = this->create_move_str(i, j);
     move->set_last_move(move_str);
     move->en_passant_target_index = -1;
@@ -2620,10 +2620,10 @@ void Board::add_king_moves(std::list<Board*>* moves, int i)
             {
                 Board* move = this->clone();
                 move->switch_move();
-                move->set_piece(0, 4, false);
-                move->set_piece(0, 7, false);
-                move->set_piece(5, 5, true);
-                move->set_piece(1, 6, true);
+                move->set_piece(0, 4);
+                move->set_piece(0, 7);
+                move->set_piece(5, 5);
+                move->set_piece(1, 6);
                 move->white_king_pos = 6;
                 move->set_last_move("O-O");
                 move->castling_rights[0] = false;
@@ -2640,10 +2640,10 @@ void Board::add_king_moves(std::list<Board*>* moves, int i)
             {
                 Board* move = this->clone();
                 move->switch_move();
-                move->set_piece(0, 4, false);
-                move->set_piece(0, 0, false);
-                move->set_piece(5, 3, true);
-                move->set_piece(1, 2, true);
+                move->set_piece(0, 4);
+                move->set_piece(0, 0);
+                move->set_piece(5, 3);
+                move->set_piece(1, 2);
                 move->white_king_pos = 2;
                 move->set_last_move("O-O-O");
                 move->castling_rights[1] = false;
@@ -2663,10 +2663,10 @@ void Board::add_king_moves(std::list<Board*>* moves, int i)
             {
                 Board* move = this->clone();
                 move->switch_move();
-                move->set_piece(0, 60, false);
-                move->set_piece(0, 63, false);
-                move->set_piece(6, 61, true);
-                move->set_piece(2, 62, true);
+                move->set_piece(0, 60);
+                move->set_piece(0, 63);
+                move->set_piece(6, 61);
+                move->set_piece(2, 62);
                 move->black_king_pos = 62;
                 move->set_last_move("O-O");
                 move->castling_rights[2] = false;
@@ -2683,10 +2683,10 @@ void Board::add_king_moves(std::list<Board*>* moves, int i)
             {
                 Board* move = this->clone();
                 move->switch_move();
-                move->set_piece(0, 60, false);
-                move->set_piece(0, 56, false);
-                move->set_piece(6, 59, true);
-                move->set_piece(2, 58, true);
+                move->set_piece(0, 60);
+                move->set_piece(0, 56);
+                move->set_piece(6, 59);
+                move->set_piece(2, 58);
                 move->black_king_pos = 58;
                 move->set_last_move("O-O-O");
                 move->castling_rights[2] = false;
@@ -2712,8 +2712,8 @@ void Board::move_with_offset(std::list<Board*>* moves, int i, int j)
     Board* move = this->clone();
 
     move->switch_move();
-    move->set_piece(0, i, false);
-    move->set_piece(this->position[i]->get_type(), j, true);
+    move->set_piece(0, i);
+    move->set_piece(this->position[i]->get_type(), j);
     if (this->position[i]->get_type() == 1)
     {
         if (this->attacked_by_black[j])
@@ -2816,8 +2816,8 @@ void Board::promote_with_offset(std::list<Board*>* moves, int i, int j, unsigned
             move->castling_rights[2] = false;
         }
     }
-    move->set_piece(0, i, false);
-    move->set_piece(promote_to, j, true);
+    move->set_piece(0, i);
+    move->set_piece(promote_to, j);
 
     std::string move_str = this->create_move_str(i, j);
     move_str += '=';

@@ -1,12 +1,18 @@
+// includes for memory leak tracking
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
+
+// redefine "new" for debugging
+
 #ifdef _DEBUG
 #ifndef DBG_NEW
 #define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
 #define new DBG_NEW
 #endif
 #endif 
+
+// includes
 #include "board.h"
 #include "movegen.h"
 #include "search.h"
@@ -14,6 +20,12 @@
 #include <vector>
 #include <iostream>
 
+// function definitions
+
+void perft(Board* b, int depth);
+void search(Board* b, int depth);
+void split_string(std::vector<std::string>* v, std::string s);
+void uci_console();
 
 /**
  * @brief Runs the program
@@ -22,21 +34,24 @@
  * @param argv array of command line arguments
  * @return int
  */
-
-void perft(Board* b, int depth);
-void search(Board* b, int depth);
-void split_string(std::vector<std::string>* v, std::string s);
-void uci_console();
-
 int main(int argc, char** argv)
 {
+	// run UCI console 
 	uci_console();
 
-
+	// dump memory leaks into debug output
 	_CrtDumpMemoryLeaks();
+
+	// exit
 	return 0;
 }
 
+/**
+ * Driver function for Perft testing.
+ * 
+ * \param b position to search from
+ * \param depth depth to search to
+ */
 void perft(Board* b, int depth) {
 	std::list<Board*>* moves = b->possible_moves();
 	int total = 0;
@@ -55,12 +70,22 @@ void perft(Board* b, int depth) {
 	delete moves;
 }
 
+/**
+ * Search driving function.
+ *
+ * \param b position to search
+ * \param depth depth to search to
+ */
 void search(Board* b, int depth) {
 	Search* s = new Search();
 	s->evaluate_iterative_deepening(b, depth);
 	delete s;
 }
 
+/**
+ * Driver function for UCI console.
+ *
+ */
 void uci_console() {
 	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
@@ -95,7 +120,8 @@ void uci_console() {
 							int depth = std::stoi((*split)[2]);
 							perft(board, depth);
 						}
-					} else if ((*split)[1] == "depth") {
+					}
+					else if ((*split)[1] == "depth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
 							search(board, depth);
@@ -104,14 +130,17 @@ void uci_console() {
 				}
 			}
 		}
-
-
 		delete split;
 	}
-
 	delete board;
 }
 
+/**
+ * Utility function to split a string into a vector.
+ *
+ * \param v vector of strings
+ * \param s string to split
+ */
 void split_string(std::vector<std::string>* v, std::string s) {
 	std::string tmp = "";
 	for (int i = 0; i < s.length(); i++) {
@@ -124,5 +153,4 @@ void split_string(std::vector<std::string>* v, std::string s) {
 		}
 	}
 	v->push_back(tmp);
-
 }
