@@ -23,6 +23,7 @@ Board::Board()
         this->pins[i] = 0;
         this->checks[i] = false;
     }
+    this->prev_pos = nullptr;
 }
 /**
  * @brief Construct a new Board:: Board object from a given position
@@ -50,6 +51,7 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
         this->pins[i] = 0;
         this->checks[i] = false;
     }
+    this->prev_pos = nullptr;
 }
 
 /**
@@ -3182,4 +3184,194 @@ bool Board::equals(Board* b)
     }
 
     return true;
+}
+/**
+ * \brief Makes move on the board.
+ * 
+ * \param m Move m
+ */
+void Board::make_move(Move* m) {
+    this->switch_move();
+    // unwrapping move m
+    int origin = m->origin;
+    int target = m->target;
+    bool is_capture = m->is_capture;
+    bool is_promotion = m->is_promotion;
+    unsigned promotion_type = m->promotion_type;
+
+
+    // managing stack
+
+    this->stack_moves->push_back(m);
+
+    // copying the castling rights
+    bool * copy_castling_rights = new bool[4];
+    for (int i = 0; i < 4; i++) {
+        copy_castling_rights[i] = this->castling_rights[i];
+    }
+    this->stack_castling_rights->push_back(copy_castling_rights);
+
+    this->stack_en_passant_target_index->push_back(this->en_passant_target_index);
+    this->en_passant_target_index = -1;
+    
+    this->stack_captures->push_back(this->position[target]->get_type());
+
+    // perform castling
+
+    // if is white castling move
+    if (this->position[origin]->get_type() == 1 && std::abs(target - origin) == 2) {
+        if (target == 6) {
+            this->position[6]->set_piece_type(1);
+            this->position[4]->set_piece_type(0);
+            this->position[5]->set_piece_type(5);
+            this->position[7]->set_piece_type(0);
+        }
+        else if (target == 2) {
+            this->position[2]->set_piece_type(1);
+            this->position[4]->set_piece_type(0);
+            this->position[3]->set_piece_type(5);
+            this->position[0]->set_piece_type(0);
+        }
+        this->castling_rights[0] = false;
+        this->castling_rights[1] = false;
+        return;
+    }
+    // if is black castling move
+    else if (this->position[origin]->get_type() == 2 && std::abs(target - origin) == 2) {
+        if (target == 62) {
+            this->position[62]->set_piece_type(2);
+            this->position[60]->set_piece_type(0);
+            this->position[61]->set_piece_type(6);
+            this->position[63]->set_piece_type(0);
+        }
+        else if (target == 2) {
+            this->position[58]->set_piece_type(2);
+            this->position[60]->set_piece_type(0);
+            this->position[59]->set_piece_type(6);
+            this->position[56]->set_piece_type(0);
+        }
+        this->castling_rights[2] = false;
+        this->castling_rights[3] = false;
+        return;
+    }
+    
+    // performing en passant
+    if (this->position[origin]->get_type() == 11 && target == this->en_passant_target_index) {
+        this->position[target - 8]->set_piece_type(0);
+    }
+    else if (this->position[origin]->get_type() == 12 && target == this->en_passant_target_index) {
+        this->position[target + 8]->set_piece_type(0);
+    }
+    // make move (special case rook and king moves)
+    if ((origin == 0 && this->position[origin]->get_type() == 5) || (target == 0 && this->position[target]->get_type() == 5)) {
+        this->castling_rights[1] = false;
+    } 
+    else if ((origin == 7 && this->position[origin]->get_type() == 5) || (target == 7 && this->position[target]->get_type() == 5)) {
+        this->castling_rights[0] = false;
+    }
+    else if ((origin == 56 && this->position[origin]->get_type() == 6) || (target == 56 && this->position[target]->get_type() == 5)) {
+        this->castling_rights[3] = false;
+    }
+    else if ((origin == 63 && this->position[origin]->get_type() == 5) || (target == 63 && this->position[target]->get_type() == 5)) {
+        this->castling_rights[2] = false;
+    }
+    // manage en passant target square
+    if ((this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) && std::abs(target - origin == 16)) {
+        if (this->position[origin]->is_white()) {
+            this->en_passant_target_index = origin + 8;
+        }
+        else {
+            this->en_passant_target_index = origin - 8;
+        }
+    }
+
+    // make move
+    this->position[target]->set_piece_type(this->position[origin]->get_type());
+    this->position[origin]->set_piece_type(0);
+
+    if (is_promotion) {
+        this->position[target]->set_piece_type(promotion_type);
+    }
+}
+
+void Board::unmake_move() {
+    this->switch_move();
+    // stack
+    
+    // move unwrapping
+    Move* m = this->stack_moves->back();
+    int target = m->target;
+    int origin = m->origin;
+    bool is_promotion = m->is_promotion;
+    unsigned promotion_type = m->promotion_type;
+
+    this->stack_moves->pop_back();
+    
+    bool* castling_rights_old = this->stack_castling_rights->back();
+    this->stack_castling_rights->pop_back();
+    for (int i = 0; i < 4; i++) {
+        this->castling_rights[i] = castling_rights_old[i];
+    }
+    delete castling_rights_old;
+
+    unsigned capture_type = this->stack_captures->back();
+    this->stack_captures->pop_back();
+
+    this->en_passant_target_index = this->stack_en_passant_target_index->back();
+    this->stack_en_passant_target_index->pop_back();
+    
+
+    // unmake castling
+    if (this->position[target]->get_type() == 1 && std::abs(target - origin) == 2) {
+        if (target == 6) {
+            this->position[6]->set_piece_type(0);
+            this->position[5]->set_piece_type(0);
+            this->position[7]->set_piece_type(5);
+            this->position[4]->set_piece_type(1);
+        }
+        else if (target == 2) {
+            this->position[2]->set_piece_type(0);
+            this->position[3]->set_piece_type(0);
+            this->position[0]->set_piece_type(5);
+            this->position[4]->set_piece_type(1);
+        }
+        return;
+    }
+    else if (this->position[target]->get_type() == 2 && std::abs(target - origin) == 2) {
+        if (target == 62) {
+            this->position[62]->set_piece_type(0);
+            this->position[61]->set_piece_type(0);
+            this->position[63]->set_piece_type(6);
+            this->position[60]->set_piece_type(2);
+        }
+        else if (target == 58) {
+            this->position[58]->set_piece_type(0);
+            this->position[59]->set_piece_type(0);
+            this->position[56]->set_piece_type(6);
+            this->position[60]->set_piece_type(2);
+        }
+        return;
+    }
+    // unmake move
+    this->position[origin]->set_piece_type(this->position[target]->get_type());
+    this->position[target]->set_piece_type(capture_type);
+    // unmake en passant 
+    if ((this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) && target == this->en_passant_target_index) {
+        if (this->position[origin]->is_white()) {
+            this->position[target - 8]->set_piece_type(12);
+        }
+        else {
+            this->position[target + 8]->set_piece_type(11);
+        }
+    }
+    
+    // unmake promotion
+    if (is_promotion) {
+        if (this->position[origin]->is_white()) {
+            this->position[origin]->set_piece_type(11);
+        }
+        else {
+            this->position[origin]->set_piece_type(12);
+        }
+    }
 }

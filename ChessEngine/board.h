@@ -51,9 +51,10 @@ private:
     static bool is_not_capture(Board* b);
     static bool contains_both_kings(Board* b);
 
-    std::list<bool*>* stack_castling_rights;
-    std::list<int>* stack_en_passant_target_index;
-    std::list<unsigned>* stack_captures;
+    std::list<bool*>* stack_castling_rights = new std::list<bool*>;
+    std::list<int>* stack_en_passant_target_index = new std::list<int>;
+    std::list<unsigned>* stack_captures = new std::list<unsigned>;
+    std::list<Move*>* stack_moves = new std::list<Move*>;
 
 public:
     Board();
@@ -97,7 +98,7 @@ public:
     bool equals(Board* b);
     bool white_to_move;
 
-    void make_move(Move m);
+    void make_move(Move* m);
     void unmake_move();
 
     ~Board();
