@@ -1,16 +1,14 @@
-// includes for memory leak tracking
+/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-
-// redefine "new" for debugging
-
 #ifdef _DEBUG
 #ifndef DBG_NEW
 #define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
 #define new DBG_NEW
 #endif
-#endif 
+#endif
+*/
 
 // includes
 #include "board.h"
@@ -53,16 +51,18 @@ int main(int argc, char** argv)
  * \param depth depth to search to
  */
 void perft(Board* b, int depth) {
-	std::list<Board*>* moves = b->possible_moves();
+	std::list<Move*>* moves = b->possible_moves();
 	int total = 0;
-	for (Board* const& move : *moves) {
-		Movegen* gen = new Movegen(move);
+	for (Move* const& move : *moves) {
+		b->make_move(move);
+		Movegen* gen = new Movegen(b);
 		int num_moves = gen->generate_moves(depth - 1);
 		total += num_moves;
-		std::cout << move->get_last_move() << ": " << num_moves << std::endl;
+		std::cout << move->to_string() << ": " << num_moves << std::endl;
 		delete gen;
+		b->unmake_move();
 	}
-	for (Board* const& move : *moves) {
+	for (Move* const& move : *moves) {
 		delete move;
 	}
 	std::cout << "Nodes searched: " << total << std::endl;

@@ -1,3 +1,4 @@
+/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -7,6 +8,7 @@
 #define new DBG_NEW
 #endif
 #endif
+*/
 #ifndef Board_H
 #define Board_H
 
@@ -34,18 +36,17 @@ private:
     /* functions */
     std::string get_coord_str_from_index(int i);
     std::string create_move_str(int from, int to);
-    void add_king_moves(std::list<Board*>* moves, int i);
-    void add_queen_moves(std::list<Board*>* moves, int i);
-    void add_rook_moves(std::list<Board*>* moves, int i);
-    void add_bishop_moves(std::list<Board*>* moves, int i);
-    void add_knight_moves(std::list<Board*>* moves, int i);
-    void add_pawn_moves(std::list<Board*>* moves, int i);
-    void promote_with_offset(std::list<Board*>* moves, int i, int j, unsigned promote_to);
-    void move_en_passant(std::list<Board*>* moves, int i, int j);
+    void add_king_moves(std::list<Move*>* moves, int i);
+    void add_queen_moves(std::list<Move*>* moves, int i);
+    void add_rook_moves(std::list<Move*>* moves, int i);
+    void add_bishop_moves(std::list<Move*>* moves, int i);
+    void add_knight_moves(std::list<Move*>* moves, int i);
+    void add_pawn_moves(std::list<Move*>* moves, int i);
+    void promote_with_offset(std::list<Move*>* moves, int i, int j, unsigned promote_to);
+    void move_en_passant(std::list<Move*>* moves, int i, int j);
     void add_diagonal_attack_rays(int i, bool is_white);
     void add_straight_attack_rays(int i, bool is_white);
     void add_straight_pin_rays(int i, bool is_white);
-    void filter_illegal_moves(std::list<Board*>* moves);
     bool en_passant_illegal();
     static bool compare(Board* b1, Board* b2);
     static bool is_not_capture(Board* b);
@@ -83,9 +84,8 @@ public:
     int set_piece(unsigned type, int pos);
     std::string pos_as_str();
     std::string get_attacked_squares();
-    std::list<Board*>* possible_moves();
-    std::list<Board*>* get_legal_moves();
-    std::list<Board*>* get_legal_captures();
+    std::list<Move*>* possible_moves();
+    std::list<Move*>* get_legal_captures();
     void compute_pin_rays();
     void compute_other_checks();
     std::string get_last_move();
@@ -93,7 +93,7 @@ public:
     void compute_piece_rays();
     void set_white_king_pos(int i);
     void set_black_king_pos(int i);
-    void move_with_offset(std::list<Board*>* moves, int i, int j);
+    void move_with_offset(std::list<Move*>* moves, int i, int j);
     Board* clone();
     bool equals(Board* b);
     bool white_to_move;

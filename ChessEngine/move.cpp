@@ -10,6 +10,9 @@
  * \param set_promotion_type type to promote to (0 if no promotion)
  */
 Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, unsigned set_promotion_type) {
+	if (set_origin >= 64 || set_target >= 65 || set_origin < 0 || set_target < 0) {
+		std::cout << "here" << std::endl;
+	}
 	this->origin = set_origin;
 	this->target = set_target;
 	this->is_capture = set_is_capture;
@@ -190,5 +193,13 @@ std::string Move::type_to_lowercase_letter(unsigned type) {
 	default:
 		return "";
 	}
+}
+
+Move* Move::clone() {
+	return new Move(this->origin, this->target, this->is_capture, this->is_promotion, this->promotion_type);
+}
+
+bool Move::equals(Move* m) {
+	return (m->origin == this->origin) && (m->target == this->target) && (m->is_capture == this->is_capture) && (m->is_promotion == this->is_promotion) && (m->promotion_type && this->promotion_type);
 }
 

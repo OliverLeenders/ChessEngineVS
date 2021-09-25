@@ -1,7 +1,19 @@
+/*
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#ifdef _DEBUG
+#ifndef DBG_NEW
+#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+#define new DBG_NEW
+#endif
+#endif
+*/
 #ifndef Move_H
 #define Move_H
 
 #include <string>
+#include <iostream>
 
 class Move
 {
@@ -15,6 +27,8 @@ public:
 	bool is_promotion;
 	unsigned promotion_type;
 	std::string to_string();
+	Move* clone();
+	bool equals(Move* m);
 private: 
 	std::string index_to_string(int i);
 	std::string type_to_lowercase_letter(unsigned type);

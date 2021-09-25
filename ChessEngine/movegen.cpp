@@ -33,14 +33,16 @@ int Movegen::generate_moves(int depth)
     else
     {
         int move_count = 0;
-        std::list<Board*>* possible_moves = this->starting_pos->get_legal_moves();
-        for (Board* const& b : *possible_moves)
+        std::list<Move*>* possible_moves = this->starting_pos->possible_moves();
+        for (Move* const& b : *possible_moves)
         {
-            Movegen* m = new Movegen(b);
+            this->starting_pos->make_move(b);
+            Movegen* m = new Movegen(this->starting_pos);
             move_count += m->generate_moves(depth - 1);
             delete m;
+            this->starting_pos->unmake_move();
         }
-        for (Board* const& b : *possible_moves) {
+        for (Move * const& b : *possible_moves) {
             delete b;
         }
         delete possible_moves;

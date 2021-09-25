@@ -28,7 +28,7 @@ Search::~Search()
  * @param left_most whether the current position is left most in the tree (set to true if starting search)
  * @return double evaluation
  */
-double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Board*>* PV, Evaluator* e, bool left_most)
+double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Move*>* PV, Evaluator* e, bool left_most)
 {
 	if (depth_left == 0)
 	{
@@ -40,8 +40,8 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		// getting legal moves
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
-		std::list<Board*>* moves = pos->get_legal_moves();
-		moves->sort(e->compare);
+		std::list<Move*>* moves = pos->possible_moves();
+		//moves->sort(e->compare);
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
@@ -54,13 +54,14 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 			e->add_hash(pos_hash, 0.00);
 			return 0.00;
 		}
-		std::list<Board*>* line = new std::list<Board*>;
+		std::list<Move*>* line = new std::list<Move*>;
 
 		int i = 0;
-		for (Board* const& move : *moves)
+		for (Move* const& move : *moves)
 		{
+			pos->make_move(move);
 			double score;
-			uint64_t move_hash = e->zobrist_hash(move);
+			uint64_t move_hash = e->zobrist_hash(pos);
 			bool is_transposition = e->contains_z_hash(move_hash);
 
 			if (i == 0 && left_most)
@@ -72,15 +73,15 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 				}
 				else
 				{
-					score = -this->alpha_beta(move, -beta, -alpha, depth_left - 1, line, e, true);
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, e, true);
 				}
-				for (Board* const& pv_move : *PV)
+				for (Move* const& pv_move : *PV)
 				{
 					delete pv_move;
 				}
 				PV->clear();
 
-				for (Board* const& line_move : *line)
+				for (Move* const& line_move : *line)
 				{
 					PV->push_back(line_move->clone());
 				}
@@ -88,21 +89,23 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 			}
 			else
 			{
-				if (e->contains_z_hash(e->zobrist_hash(move)))
+				if (is_transposition)
 				{
 					score = e->zobrist_hashmap->find(move_hash)->second;
 				}
 				else
 				{
-					score = -this->alpha_beta(move, -beta, -alpha, depth_left - 1, line, e, false);
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, e, false);
 				}
 				if (score >= beta)
 				{
-					for (Board* const& imove : *moves)
+
+					pos->unmake_move();
+					for (Move* const& imove : *moves)
 					{
 						delete imove;
 					}
-					for (Board* const& line_move : *line)
+					for (Move* const& line_move : *line)
 					{
 						delete line_move;
 					}
@@ -116,13 +119,13 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 				}
 				else if (score > alpha)
 				{
-					for (Board* const& pv_move : *PV)
+					for (Move* const& pv_move : *PV)
 					{
 						delete pv_move;
 					}
 
 					PV->clear();
-					for (Board* const& line_move : *line)
+					for (Move* const& line_move : *line)
 					{
 						PV->push_back(line_move->clone());
 					}
@@ -132,12 +135,13 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 				}
 			}
 			i++;
+			pos->unmake_move();
 		}
-		for (Board* const& b : *moves)
+		for (Move* const& b : *moves)
 		{
 			delete b;
 		}
-		for (Board* const& b : *line)
+		for (Move* const& b : *line)
 		{
 			delete b;
 		}
@@ -164,7 +168,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
  * \param prev_pv previous PV
  * \return eval
  */
-double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Board*>* PV, Evaluator* e, bool left_most, std::list<Board*>* prev_pv)
+double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Move*>* PV, Evaluator* e, bool left_most, std::list<Move*>* prev_pv)
 {
 	if (prev_pv->size() == 0)
 	{
@@ -176,9 +180,9 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 	}
 	else
 	{
-		std::list<Board*>* line = new std::list<Board*>;
-		std::list<Board*>* moves = pos->get_legal_moves();
-		moves->sort(e->compare);
+		std::list<Move*>* line = new std::list<Move*>;
+		std::list<Move*>* moves = pos->possible_moves();
+		//moves->sort(e->compare);
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
 		if (moves->size() == 0 && pos->num_checks > 0)
@@ -200,15 +204,16 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			return 0.00;
 		}
 
-		Board* pv_pos = prev_pv->front();
+		Move* pv_pos = prev_pv->front();
 		prev_pv->pop_front();
 
 		moves->push_front(pv_pos);
 		int i = 0;
-		for (Board* const& move : *moves)
+		for (Move* const& move : *moves)
 		{
+			pos->make_move(move);
 			double score;
-			uint64_t move_hash = e->zobrist_hash(move);
+			uint64_t move_hash = e->zobrist_hash(pos);
 
 			if (i == 0 && left_most)
 			{
@@ -218,14 +223,14 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 				}
 				else
 				{
-					score = -this->alpha_beta_prev_PV(move, -beta, -alpha, depth_left - 1, line, e, true, prev_pv);
+					score = -this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, e, true, prev_pv);
 				}
-				for (Board* const& pv_move : *PV)
+				for (Move* const& pv_move : *PV)
 				{
 					delete pv_move;
 				}
 				PV->clear();
-				for (Board* const& line_move : *line)
+				for (Move* const& line_move : *line)
 				{
 					PV->push_back(line_move->clone());
 				}
@@ -240,15 +245,17 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 				}
 				else
 				{
-					score = -this->alpha_beta(move, -beta, -alpha, depth_left - 1, line, e, false);
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, e, false);
 				}
 				if (score >= beta)
 				{
-					for (Board* const& move : *moves)
+
+					pos->unmake_move();
+					for (Move* const& move : *moves)
 					{
 						delete move;
 					}
-					for (Board* const& line_move : *line)
+					for (Move* const& line_move : *line)
 					{
 						delete line_move;
 					}
@@ -257,19 +264,18 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 					if (!pos_is_transposition) {
 						e->add_hash(pos_hash, beta);
 					}
-
 					return beta;
 					//  fail hard beta-cutoff
 				}
 				else if (score > alpha)
 				{
-					for (Board* const& pv_move : *PV)
+					for (Move* const& pv_move : *PV)
 					{
 						delete pv_move;
 					}
 
 					PV->clear();
-					for (Board* const& line_move : *line)
+					for (Move* const& line_move : *line)
 					{
 						PV->push_back(line_move->clone());
 					}
@@ -279,12 +285,13 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 				}
 			}
 			i++;
+			pos->unmake_move();
 		}
-		for (Board* const& b : *moves)
+		for (Move* const& b : *moves)
 		{
 			delete b;
 		}
-		for (Board* const& b : *line)
+		for (Move* const& b : *line)
 		{
 			delete b;
 		}
@@ -308,13 +315,13 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
  */
 double Search::evaluate(Board* pos, unsigned int depth)
 {
-	std::list<Board*>* PV = new std::list<Board*>;
+	std::list<Move*>* PV = new std::list<Move*>;
 	Evaluator* e = new Evaluator();
 	double res = this->alpha_beta(pos, -DBL_MAX, DBL_MAX, depth, PV, e, true);
 	std::cout << PV->size() << std::endl;
-	for (Board* const& i : *PV)
+	for (Move* const& i : *PV)
 	{
-		std::cout << i->get_last_move() + " ";
+		std::cout << i->to_string() + " ";
 		delete i;
 	}
 	std::cout << std::endl;
@@ -325,7 +332,7 @@ double Search::evaluate(Board* pos, unsigned int depth)
 
 double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 {
-	std::list<Board*>* prev_PV = new std::list<Board*>;
+	std::list<Move*>* prev_PV = new std::list<Move*>;
 	double res = 0.00;
 	Evaluator* e = new Evaluator();
 	std::string best_move = "";
@@ -333,18 +340,18 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	for (unsigned int i = 1; i <= depth; i++)
 	{
 
-		std::list<Board*>* PV = new std::list<Board*>;
+		std::list<Move*>* PV = new std::list<Move*>;
 		res = this->alpha_beta_prev_PV(pos, -DBL_MAX, DBL_MAX, i, PV, e, true, prev_PV);
 		std::cout << "info score " << std::fixed << (int)(res * 100 + 0.5);
 		std::cout << " pv ";
-		for (Board* const& i : *PV)
+		for (Move* const& i : *PV)
 		{
-			std::cout << " " << i->get_last_move() << " ";
+			std::cout << " " << i->to_string() << " ";
 		}
 		std::cout << "nodes " << e->zobrist_hashmap->size();
 		std::cout << std::endl;
-		best_move = PV->front()->get_last_move();
-		for (Board* const& i : *prev_PV)
+		best_move = PV->front()->to_string();
+		for (Move* const& i : *prev_PV)
 		{
 			delete i;
 		}
@@ -355,7 +362,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	}
 	std::cout << "bestmove " << best_move << std::endl << std::endl;
 	delete e;
-	for (Board* const& i : *prev_PV)
+	for (Move* const& i : *prev_PV)
 	{
 		delete i;
 	}
@@ -389,8 +396,8 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 		alpha = stand_pat;
 	}
 
-	std::list<Board*>* moves = pos->get_legal_captures();
-	moves->sort(e->compare);
+	std::list<Move*>* moves = pos->get_legal_captures();
+	//moves->sort(e->compare);
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
@@ -405,22 +412,24 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 	}
 	else
 	{
-		for (Board* const& move : *moves)
+		for (Move* const& move : *moves)
 		{
+			pos->make_move(move);
 			double score;
-			uint64_t move_hash = e->zobrist_hash(move);
+			uint64_t move_hash = e->zobrist_hash(pos);
 			bool is_transposition = e->contains_z_hash(move_hash);
 			if (is_transposition)
 			{
-				score = e->zobrist_hashmap->find(e->zobrist_hash(move))->second;
+				score = e->zobrist_hashmap->find(move_hash)->second;
 			}
 			else
 			{
-				score = -this->quiescence(move, -beta, -alpha, e);
+				score = -this->quiescence(pos, -beta, -alpha, e);
 			}
 			if (score >= beta)
 			{
-				for (Board* const& b : *moves)
+				pos->unmake_move();
+				for (Move* const& b : *moves)
 				{
 					delete b;
 				}
@@ -428,15 +437,15 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 				if (!is_transposition) {
 					e->add_hash(move_hash, beta);
 				}
-
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
 			{
 				alpha = score; // alpha acts like max in MiniMax
 			}
+			pos->unmake_move();
 		}
-		for (Board* const& b : *moves)
+		for (Move* const& b : *moves)
 		{
 			delete b;
 		}
