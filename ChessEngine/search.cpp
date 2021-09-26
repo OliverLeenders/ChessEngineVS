@@ -341,7 +341,9 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	{
 
 		std::list<Move*>* PV = new std::list<Move*>;
+		
 		res = this->alpha_beta_prev_PV(pos, -DBL_MAX, DBL_MAX, i, PV, e, true, prev_PV);
+		
 		std::cout << "info score " << std::fixed << (int)(res * 100 + 0.5);
 		std::cout << " pv ";
 		for (Move* const& i : *PV)
@@ -350,7 +352,9 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		}
 		std::cout << "nodes " << e->zobrist_hashmap->size();
 		std::cout << std::endl;
+		
 		best_move = PV->front()->to_string();
+		
 		for (Move* const& i : *prev_PV)
 		{
 			delete i;
@@ -358,6 +362,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		prev_PV->clear();
 		delete prev_PV;
 		prev_PV = PV;
+		
 		e->zobrist_hashmap->clear();
 	}
 	std::cout << "bestmove " << best_move << std::endl << std::endl;
@@ -366,6 +371,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	{
 		delete i;
 	}
+	prev_PV->clear();
 	delete prev_PV;
 	return res;
 }

@@ -348,6 +348,25 @@ Board::~Board()
 	delete[] this->pins;
 	delete[] this->checks;
 	delete[] this->position;
+
+	this->stack_captures->clear();
+	delete this->stack_captures;
+
+	for (Move* m : *this->stack_moves) {
+		delete m;
+	}
+	this->stack_moves->clear();
+	delete this->stack_moves;
+
+	for (bool* c : *this->stack_castling_rights) {
+		delete[] c;
+	}
+	this->stack_castling_rights->clear();
+	delete this->stack_castling_rights;
+
+	this->stack_en_passant_target_index;
+	delete this->stack_en_passant_target_index;
+
 }
 
 void Board::compute_attacked_squares()
@@ -1923,7 +1942,7 @@ bool Board::is_not_capture(Board* b)
 std::list<Move*>* Board::get_legal_captures()
 {
 	std::list<Move*>* moves = this->possible_moves();
-	auto iterator = std::remove_if(moves->begin(), moves->end(), [](const Move* m) {return !m->is_capture; });
+	auto iterator = std::remove_if(moves->begin(), moves->end(), [](const Move* m) {bool is_not_capture = !m->is_capture; if (is_not_capture) { delete m; } return is_not_capture; });
 	moves->erase(iterator, moves->end());
 	return moves;
 }
@@ -3088,7 +3107,7 @@ void Board::unmake_move() {
 	bool is_promotion = m->is_promotion;
 	unsigned promotion_type = m->promotion_type;
 	//delete m;
-	
+
 	this->stack_moves->pop_back();
 
 	bool* castling_rights_old = this->stack_castling_rights->back();
