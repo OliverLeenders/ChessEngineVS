@@ -1,21 +1,13 @@
 #include "evaluator.h"
 #include <iostream>
+
 Evaluator::Evaluator()
 {
-	/*for (int i = 0; i < 64; i++)
-	{
-		int index = 8 * (7 - (i / 8)) + (i % 8);
-		std::cout << this->RookTable[index] << " ";
-		if (i % 8 == 7)
-		{
-			std::cout << std::endl;
-		}
-	}*/
 	for (int i = 0; i < 781; i++)
 	{
 		this->zobrist_base_numbers[i] = this->random_64_bit_num();
 	}
-	this->zobrist_hashmap->reserve(1000000);
+	this->zobrist_hashmap->reserve(10000000);
 	return;
 }
 
@@ -149,88 +141,19 @@ double Evaluator::evaluate(Board* b)
 	{
 		return -e;
 	}
-
 }
 
-bool Evaluator::compare(Board* b1, Board* b2) {
-	int i1 = b1->last_move_origin;
-	int j1 = b1->last_move_target;
-	int i2 = b2->last_move_origin;
-	int j2 = b2->last_move_target;
-	Board* prev_1 = b1->prev_pos;
-	Board* prev_2 = b2->prev_pos;
-	if ((!prev_1->position[j1]->is_empty()) && (!prev_2->position[j2]->is_empty())) {
-		double diff_1 = prev_1->position[j1]->value() - prev_1->position[i1]->value();
-		double diff_2 = prev_2->position[j2]->value() - prev_2->position[i2]->value();
-		return diff_1 > diff_2;
+bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2) {
+	if (m_1->is_capture && m_2->is_capture) {
+		return false;
 	}
-	else if (!prev_2->position[j2]->is_empty()) {
-		return 0 > 1;
+	else if (m_1->is_capture) {
+		return true;
 	}
-	else if (!prev_1->position[j1]->is_empty()) {
-		return 0 < 1;
+	else if (m_2->is_capture) {
+		return false;
 	}
-	double diff_1;
-	double diff_2;
-	switch (prev_1->position[i1]->get_type())
-	{
-	case 1:
-		diff_1 = (KingTable[j1] - KingTable[i1]) / 100.0;
-	case 2:
-		diff_1 = (KingTable[mirror_vertical(j1)] - KingTable[mirror_vertical(i1)]) / 100.0;
-	case 3:
-		diff_1 = (QueenTable[j1] - QueenTable[i1]) / 100.0;
-	case 4:
-		diff_1 = (QueenTable[mirror_vertical(j1)] - QueenTable[mirror_vertical(i1)]) / 100.0;
-	case 5:
-		diff_1 = (RookTable[j1] - RookTable[i1]) / 100.0;
-	case 6:
-		diff_1 = (RookTable[mirror_vertical(j1)] - RookTable[mirror_vertical(i1)]) / 100.0;
-	case 7:
-		diff_1 = (BishopTable[j1] - BishopTable[i1]) / 100.0;
-	case 8:
-		diff_1 = (BishopTable[mirror_vertical(j1)] - BishopTable[mirror_vertical(i1)]) / 100.0;
-	case 9:
-		diff_1 = (KnightTable[j1] - KnightTable[i1]) / 100.0;
-	case 10:
-		diff_1 = (KnightTable[mirror_vertical(j1)] - KnightTable[mirror_vertical(i1)]) / 100.0;
-	case 11:
-		diff_1 = (PawnTable[j1] - PawnTable[i1]) / 100.0;
-	case 12:
-		diff_1 = (PawnTable[mirror_vertical(j1)] - PawnTable[mirror_vertical(i1)]) / 100.0;
-	default:
-		break;
-	}
-	switch (prev_2->position[i2]->get_type())
-	{
-	case 1:
-		diff_2 = (KingTable[j2] - KingTable[i2]) / 100.0;
-	case 2:
-		diff_2 = (KingTable[mirror_vertical(j2)] - KingTable[mirror_vertical(i2)]) / 100.0;
-	case 3:
-		diff_2 = (QueenTable[j2] - QueenTable[i2]) / 100.0;
-	case 4:
-		diff_2 = (QueenTable[mirror_vertical(j2)] - QueenTable[mirror_vertical(i2)]) / 100.0;
-	case 5:
-		diff_2 = (RookTable[j2] - RookTable[i2]) / 100.0;
-	case 6:
-		diff_2 = (RookTable[mirror_vertical(j2)] - RookTable[mirror_vertical(i2)]) / 100.0;
-	case 7:
-		diff_2 = (BishopTable[j2] - BishopTable[i2]) / 100.0;
-	case 8:
-		diff_2 = (BishopTable[mirror_vertical(j2)] - BishopTable[mirror_vertical(i2)]) / 100.0;
-	case 9:
-		diff_2 = (KnightTable[j2] - KnightTable[i2]) / 100.0;
-	case 10:
-		diff_2 = (KnightTable[mirror_vertical(j2)] - KnightTable[mirror_vertical(i2)]) / 100.0;
-	case 11:
-		diff_2 = (PawnTable[j2] - PawnTable[i2]) / 100.0;
-	case 12:
-		diff_2 = (PawnTable[mirror_vertical(j2)] - PawnTable[mirror_vertical(i2)]) / 100.0;
-	default:
-		break;
-	}
-	return diff_1 > diff_2;
+	return false;
 }
 
 short Evaluator::KingTableEndGame[64] = {

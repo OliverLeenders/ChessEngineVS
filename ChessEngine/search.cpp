@@ -4,9 +4,6 @@
  * @brief Construct a new Search:: Search object
  *
  */
-Search::Search()
-{
-}
 /**
  * @brief Destroy the Search:: Search object
  *
@@ -15,6 +12,9 @@ Search::~Search()
 {
 }
 
+Search::Search()
+{
+}
 /**
  * @brief performs an alpha-beta pruning minimax search according to the negamax framework
  * and gathers a principal variation
@@ -28,6 +28,23 @@ Search::~Search()
  * @param left_most whether the current position is left most in the tree (set to true if starting search)
  * @return double evaluation
  */
+double Search::evaluate(Board* pos, unsigned int depth)
+{
+	std::list<Move*>* PV = new std::list<Move*>;
+	Evaluator* e = new Evaluator();
+	double res = this->alpha_beta(pos, -DBL_MAX, DBL_MAX, depth, PV, e, true);
+	std::cout << PV->size() << std::endl;
+	for (Move* const& i : *PV)
+	{
+		std::cout << i->to_string() + " ";
+		delete i;
+	}
+	std::cout << std::endl;
+	delete PV;
+	delete e;
+	return res;
+}
+
 double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Move*>* PV, Evaluator* e, bool left_most)
 {
 	if (depth_left == 0)
@@ -41,7 +58,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
 		std::list<Move*>* moves = pos->possible_moves();
-		//moves->sort(e->compare);
+		moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
@@ -99,7 +116,6 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 				}
 				if (score >= beta)
 				{
-
 					pos->unmake_move();
 					for (Move* const& imove : *moves)
 					{
@@ -182,7 +198,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 	{
 		std::list<Move*>* line = new std::list<Move*>;
 		std::list<Move*>* moves = pos->possible_moves();
-		//moves->sort(e->compare);
+		moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
 		if (moves->size() == 0 && pos->num_checks > 0)
@@ -249,7 +265,6 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 				}
 				if (score >= beta)
 				{
-
 					pos->unmake_move();
 					for (Move* const& move : *moves)
 					{
@@ -306,84 +321,6 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 	return alpha;
 }
 
-/**
- * @brief runs an evalutation with a certain depth
- *
- * @param pos position to search from
- * @param depth depth
- * @return double evaluation
- */
-double Search::evaluate(Board* pos, unsigned int depth)
-{
-	std::list<Move*>* PV = new std::list<Move*>;
-	Evaluator* e = new Evaluator();
-	double res = this->alpha_beta(pos, -DBL_MAX, DBL_MAX, depth, PV, e, true);
-	std::cout << PV->size() << std::endl;
-	for (Move* const& i : *PV)
-	{
-		std::cout << i->to_string() + " ";
-		delete i;
-	}
-	std::cout << std::endl;
-	delete PV;
-	delete e;
-	return res;
-}
-
-double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
-{
-	std::list<Move*>* prev_PV = new std::list<Move*>;
-	double res = 0.00;
-	Evaluator* e = new Evaluator();
-	std::string best_move = "";
-
-	for (unsigned int i = 1; i <= depth; i++)
-	{
-
-		std::list<Move*>* PV = new std::list<Move*>;
-		
-		res = this->alpha_beta_prev_PV(pos, -DBL_MAX, DBL_MAX, i, PV, e, true, prev_PV);
-		
-		std::cout << "info score " << std::fixed << (int)(res * 100 + 0.5);
-		std::cout << " pv ";
-		for (Move* const& i : *PV)
-		{
-			std::cout << " " << i->to_string() << " ";
-		}
-		std::cout << "nodes " << e->zobrist_hashmap->size();
-		std::cout << std::endl;
-		
-		best_move = PV->front()->to_string();
-		
-		for (Move* const& i : *prev_PV)
-		{
-			delete i;
-		}
-		prev_PV->clear();
-		delete prev_PV;
-		prev_PV = PV;
-		
-		e->zobrist_hashmap->clear();
-	}
-	std::cout << "bestmove " << best_move << std::endl << std::endl;
-	delete e;
-	for (Move* const& i : *prev_PV)
-	{
-		delete i;
-	}
-	prev_PV->clear();
-	delete prev_PV;
-	return res;
-}
-/**
- * @brief performs a quiescence search such that only "quiet" positions are evaluated
- *
- * @param pos starting position
- * @param alpha alpha value for AB pruning
- * @param beta beta value for AB pruning
- * @param e evaluator object
- * @return double evaluation
- */
 double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 {
 	double stand_pat = e->evaluate(pos);
@@ -403,7 +340,7 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 	}
 
 	std::list<Move*>* moves = pos->get_legal_captures();
-	//moves->sort(e->compare);
+	moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
@@ -463,3 +400,64 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 	}
 	return alpha;
 }
+
+/**
+ * @brief runs an evalutation with a certain depth
+ *
+ * @param pos position to search from
+ * @param depth depth
+ * @return double evaluation
+ */
+double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
+{
+	std::list<Move*>* prev_PV = new std::list<Move*>;
+	double res = 0.00;
+	Evaluator* e = new Evaluator();
+	std::string best_move = "";
+
+	for (unsigned int i = 1; i <= depth; i++)
+	{
+		std::list<Move*>* PV = new std::list<Move*>;
+
+		res = this->alpha_beta_prev_PV(pos, -DBL_MAX, DBL_MAX, i, PV, e, true, prev_PV);
+
+		std::cout << "info score " << std::fixed << (int)(res * 100 + 0.5);
+		std::cout << " pv ";
+		for (Move* const& i : *PV)
+		{
+			std::cout << " " << i->to_string() << " ";
+		}
+		std::cout << "nodes " << e->zobrist_hashmap->size();
+		std::cout << std::endl;
+
+		best_move = PV->front()->to_string();
+
+		for (Move* const& i : *prev_PV)
+		{
+			delete i;
+		}
+		prev_PV->clear();
+		delete prev_PV;
+		prev_PV = PV;
+
+		e->zobrist_hashmap->clear();
+	}
+	std::cout << "bestmove " << best_move << std::endl << std::endl;
+	delete e;
+	for (Move* const& i : *prev_PV)
+	{
+		delete i;
+	}
+	prev_PV->clear();
+	delete prev_PV;
+	return res;
+}
+/**
+ * @brief performs a quiescence search such that only "quiet" positions are evaluated
+ *
+ * @param pos starting position
+ * @param alpha alpha value for AB pruning
+ * @param beta beta value for AB pruning
+ * @param e evaluator object
+ * @return double evaluation
+ */

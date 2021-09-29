@@ -19,7 +19,7 @@ class Move
 public:
 	Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, unsigned set_promotion_type);
 	Move(std::string move_str, bool side_to_move, bool set_is_capture);
-	~Move();
+	
 	int origin;
 	int target;
 	bool is_capture;
@@ -28,7 +28,8 @@ public:
 	std::string to_string();
 	Move* clone();
 	bool equals(Move* m);
-private: 
+	~Move();
+private:
 	std::string index_to_string(int i);
 	std::string type_to_lowercase_letter(unsigned type);
 	unsigned char_to_type(char t);

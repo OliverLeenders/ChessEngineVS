@@ -366,7 +366,6 @@ Board::~Board()
 
 	this->stack_en_passant_target_index;
 	delete this->stack_en_passant_target_index;
-
 }
 
 void Board::compute_attacked_squares()
@@ -383,7 +382,6 @@ void Board::compute_attacked_squares()
 		{
 			if (p->get_type() == 1) // white king
 			{
-
 				if (i % 8 < 7)
 				{
 					this->attacked_by_white[i + 1] = true;
@@ -753,9 +751,11 @@ std::list<Move*>* Board::possible_moves()
 	std::list<Move*>* moves = new std::list<Move*>();
 	this->check_direction[0] = 0;
 	this->check_direction[1] = 0;
+
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
+
 	if (this->num_checks > 1)
 	{
 		if (this->white_to_move)
@@ -937,15 +937,16 @@ void Board::compute_other_checks()
 	// add pawn checks
 }
 
-/*
-std::list<Move*>* Board::get_sorted_legal_moves(Evaluator *e) {
-	std::list<Move*>* moves = this->possible_moves();
-	moves->sort(e->compare);
-	return moves;
-}
-*/
+/**
+ * \brief computes the pin rays and sliding piece checks for the board. Pin rays are stored in the board's pins array and have an indicator of pinning direction.
+ *
+ */
 void Board::compute_pin_rays()
 {
+	for (int i = 0; i < 64; i++) {
+		this->pins[i] = 0;
+		this->checks[i] = 0;
+	}
 	num_checks = 0;
 	if (this->white_to_move)
 	{
@@ -958,7 +959,6 @@ void Board::compute_pin_rays()
 		bool exists_check = false;
 		for (int i = king_pos - 1; i >= 0 && i % 8 != 7; i--)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1019,7 +1019,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos + 1; i % 8 != 0; i++)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1080,7 +1079,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos - 8; i >= 0; i -= 8)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1141,7 +1139,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos + 8; i < 64; i += 8)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1202,7 +1199,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos - 9; i % 8 != 7 && i > 0; i -= 9)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1263,7 +1259,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos + 7; i % 8 != 7 && i < 64; i += 7)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
 				break;
@@ -1449,7 +1444,6 @@ void Board::compute_pin_rays()
 
 		for (int i = king_pos - 1; i > 0 && i % 8 != 7; i--)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
 				break;
@@ -1510,7 +1504,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos + 1; i % 8 != 0; i++)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
 				break;
@@ -1571,7 +1564,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos - 8; i >= 0; i -= 8)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
 				break;
@@ -1632,7 +1624,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos + 8; i < 64; i += 8)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
 				break;
@@ -1693,7 +1684,6 @@ void Board::compute_pin_rays()
 		pin_index = -1;
 		for (int i = king_pos - 9; i % 8 != 7 && i > 0; i -= 9)
 		{
-
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
 				break;
@@ -1942,7 +1932,15 @@ bool Board::is_not_capture(Board* b)
 std::list<Move*>* Board::get_legal_captures()
 {
 	std::list<Move*>* moves = this->possible_moves();
-	auto iterator = std::remove_if(moves->begin(), moves->end(), [](const Move* m) {bool is_not_capture = !m->is_capture; if (is_not_capture) { delete m; } return is_not_capture; });
+	auto iterator = std::remove_if(moves->begin(), moves->end(), [](const Move* m)
+		{
+			bool is_not_capture = !m->is_capture;
+			if (is_not_capture)
+			{
+				delete m;
+			}
+			return is_not_capture;
+		});
 	moves->erase(iterator, moves->end());
 	return moves;
 }
@@ -2389,7 +2387,6 @@ void Board::add_rook_moves(std::list<Move*>* moves, int i)
 	{
 		for (int j = i + 1; j % 8 != 0 && i % 8 != 7 && j <= 63; j++)
 		{
-
 			if (this->position[j]->is_empty())
 			{
 				if ((this->num_checks == 1 && this->checks[j]) || this->num_checks == 0)
@@ -2500,7 +2497,6 @@ void Board::add_queen_moves(std::list<Move*>* moves, int i)
  */
 void Board::add_king_moves(std::list<Move*>* moves, int i)
 {
-
 	if ((i % 8 != 0) && (!(this->position[i - 1]->is_team_member(this->position[i]))))
 	{
 		if (this->num_checks == 0 || (this->check_direction[0] != 1 && this->check_direction[0] != 2 && this->check_direction[1] != 1 && this->check_direction[1] != 2) || (this->check_direction[0] == 1 && (!this->position[i - 1]->is_team_member(this->position[i]))))
@@ -2612,6 +2608,12 @@ void Board::add_king_moves(std::list<Move*>* moves, int i)
  */
 void Board::move_with_offset(std::list<Move*>* moves, int i, int j)
 {
+	if (this->position[i]->get_type() == 1 && this->attacked_by_black[j]) {
+		return;
+	}
+	else if (this->position[i]->get_type() == 2 && this->attacked_by_white[j]) {
+		return;
+	}
 	if (this->position[j]->is_empty()) {
 		Move* move = new Move(i, j, false, false, 0);
 		moves->push_back(move);
@@ -2762,6 +2764,9 @@ std::string Board::create_move_str(int from, int to)
 
 std::string Board::get_attacked_squares()
 {
+	compute_attacked_squares();
+	compute_pin_rays();
+	compute_other_checks();
 	std::string str = "attacked by white:\n";
 	for (int i = 0; i < 8; i++)
 	{
@@ -3001,7 +3006,6 @@ void Board::make_move(Move* m) {
 	bool is_promotion = m->is_promotion;
 	unsigned promotion_type = m->promotion_type;
 
-
 	// managing stack
 
 	this->stack_moves->push_back(m);
@@ -3036,6 +3040,7 @@ void Board::make_move(Move* m) {
 		}
 		this->castling_rights[0] = false;
 		this->castling_rights[1] = false;
+
 		return;
 	}
 	// if is black castling move
@@ -3054,6 +3059,7 @@ void Board::make_move(Move* m) {
 		}
 		this->castling_rights[2] = false;
 		this->castling_rights[3] = false;
+
 		return;
 	}
 
@@ -3123,7 +3129,6 @@ void Board::unmake_move() {
 	this->en_passant_target_index = this->stack_en_passant_target_index->back();
 	this->stack_en_passant_target_index->pop_back();
 
-
 	// unmake castling
 	if (this->position[target]->get_type() == 1 && std::abs(target - origin) == 2) {
 		if (target == 6) {
@@ -3158,7 +3163,7 @@ void Board::unmake_move() {
 	// unmake move
 	this->position[origin]->set_piece_type(this->position[target]->get_type());
 	this->position[target]->set_piece_type(capture_type);
-	// unmake en passant 
+	// unmake en passant
 	if ((this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) && target == this->en_passant_target_index) {
 		if (this->position[origin]->is_white()) {
 			this->position[target - 8]->set_piece_type(12);

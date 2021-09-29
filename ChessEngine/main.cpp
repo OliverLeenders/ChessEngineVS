@@ -1,4 +1,3 @@
-/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -8,7 +7,6 @@
 #define new DBG_NEW
 #endif
 #endif
-*/
 
 // includes
 #include "board.h"
@@ -34,7 +32,7 @@ void uci_console();
  */
 int main(int argc, char** argv)
 {
-	// run UCI console 
+	// run UCI console
 	uci_console();
 
 	// dump memory leaks into debug output
@@ -46,12 +44,14 @@ int main(int argc, char** argv)
 
 /**
  * Driver function for Perft testing.
- * 
+ *
  * \param b position to search from
  * \param depth depth to search to
  */
 void perft(Board* b, int depth) {
 	std::list<Move*>* moves = b->possible_moves();
+	Evaluator* e = new Evaluator();
+	moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
 	for (Move* const& move : *moves) {
 		b->make_move(move);
@@ -67,6 +67,7 @@ void perft(Board* b, int depth) {
 	}
 	std::cout << "Nodes searched: " << total << std::endl;
 	std::cout << std::endl;
+	delete e;
 	delete moves;
 }
 
@@ -101,6 +102,13 @@ void uci_console() {
 				delete split;
 				break;
 			}
+			else if ((*split)[0] == "print") {
+				std::cout << board->pos_as_str() << std::endl << std::endl;
+				std::cout << board->get_attacked_squares() << std::endl;
+			}
+			else if ((*split)[0] == "unmake") {
+
+			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
 					if ((*split)[1] == "startpos") {
@@ -110,11 +118,17 @@ void uci_console() {
 					else if (split->size() >= 3) {
 						if ((*split)[1] == "fen") {
 							delete board;
-							board = new Board((*split)[2]);
+							std::string fen = "";
+							for (int i = 2; i < split->size(); i++) {
+								fen += (*split)[i] + " ";
+							}
+							// std::cout << fen << std::endl;
+							board = new Board(fen);
+							std::cout << board->pos_as_str() << std::endl << std::endl;
 						}
 					}
 				}
-				if ((*split)[0] == "go") {
+				else if ((*split)[0] == "go") {
 					if ((*split)[1] == "perft") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
@@ -127,6 +141,14 @@ void uci_console() {
 							search(board, depth);
 						}
 					}
+				}
+				else if ((*split)[0] == "move") {
+					Move* m = new Move((*split)[1], board->white_to_move, false);
+					if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+						m->is_capture = true;
+					}
+					board->make_move(m);
+					std::cout << board->pos_as_str() << std::endl;
 				}
 			}
 		}
