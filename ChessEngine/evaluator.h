@@ -29,6 +29,7 @@ public:
 	std::unordered_map<uint64_t, double>* zobrist_hashmap = new std::unordered_map<uint64_t, double>;
 	std::unordered_map<uint64_t, double>* prev_zobrist_hashmap = new std::unordered_map<uint64_t, double>;
 	static int mirror_vertical(int i);
+	static double score_move(Board* pos, Move *m);
 	~Evaluator();
 private:
 	static short PawnTable[64];

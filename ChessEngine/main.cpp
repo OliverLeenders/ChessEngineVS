@@ -107,7 +107,10 @@ void uci_console() {
 				std::cout << board->get_attacked_squares() << std::endl;
 			}
 			else if ((*split)[0] == "unmake") {
-
+				board->unmake_move();
+			}
+			else if ((*split)[0] == "break") {
+				std::cout << "triggered breakpoint" << std::endl;
 			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {

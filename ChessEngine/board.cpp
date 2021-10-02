@@ -1,4 +1,4 @@
-#include "board.h"
+﻿#include "board.h"
 #include <iostream>
 
 /**
@@ -3022,6 +3022,14 @@ void Board::make_move(Move* m) {
 
 	this->stack_captures->push_back(this->position[target]->get_type());
 
+	// update king position fields
+	if (this->position[origin]->get_type() == 1) {
+		this->white_king_pos = target;
+	}
+	else if (this->position[origin]->get_type() == 2) {
+		this->black_king_pos = target;
+	}
+
 	// perform castling
 
 	// if is white castling move
@@ -3062,12 +3070,12 @@ void Board::make_move(Move* m) {
 
 		return;
 	}
-
 	// performing en passant
-	if (this->position[origin]->get_type() == 11 && target == this->en_passant_target_index) {
+	if (this->position[origin]->get_type() == 11 && target == this->stack_en_passant_target_index->back()) {
 		this->position[target - 8]->set_piece_type(0);
+		
 	}
-	else if (this->position[origin]->get_type() == 12 && target == this->en_passant_target_index) {
+	else if (this->position[origin]->get_type() == 12 && target == this->stack_en_passant_target_index->back()) {
 		this->position[target + 8]->set_piece_type(0);
 	}
 	// make move (special case rook and king moves)
@@ -3084,7 +3092,7 @@ void Board::make_move(Move* m) {
 		this->castling_rights[2] = false;
 	}
 	// manage en passant target square
-	if ((this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) && std::abs(target - origin == 16)) {
+	if ((this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) && std::abs(target - origin) == 16) {
 		if (this->position[origin]->is_white()) {
 			this->en_passant_target_index = origin + 8;
 		}
@@ -3129,6 +3137,13 @@ void Board::unmake_move() {
 	this->en_passant_target_index = this->stack_en_passant_target_index->back();
 	this->stack_en_passant_target_index->pop_back();
 
+	// unmake kingpos
+	if (this->position[target]->get_type() == 1) {
+		this->white_king_pos = origin;
+	}
+	else if (this->position[target]->get_type() == 2) {
+		this->black_king_pos = origin;
+	}
 	// unmake castling
 	if (this->position[target]->get_type() == 1 && std::abs(target - origin) == 2) {
 		if (target == 6) {

@@ -143,9 +143,23 @@ double Evaluator::evaluate(Board* b)
 	}
 }
 
+/**
+ * \brief Compares two moves according to a position.
+ *
+ * \param pos position
+ * \param m_1 move 1
+ * \param m_2 move 2
+ * \return true if and only if move 1 & 2 are already in the correct respective order.
+ */
 bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2) {
 	if (m_1->is_capture && m_2->is_capture) {
-		return false;
+		double score_1;
+		double score_2;
+
+		score_1 = pos->position[m_1->target]->value() - pos->position[m_1->origin]->value();
+		score_2 = pos->position[m_2->target]->value() - pos->position[m_2->origin]->value();
+
+		return score_1 > score_2;
 	}
 	else if (m_1->is_capture) {
 		return true;
@@ -153,7 +167,36 @@ bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2) {
 	else if (m_2->is_capture) {
 		return false;
 	}
-	return false;
+	else {
+		return score_move(pos, m_1) > score_move(pos, m_2);
+	}
+}
+
+double Evaluator::score_move(Board *pos, Move* m) {
+	int origin = m->origin;
+	int target = m->target;
+
+	if (pos->position[origin]->is_black()) {
+		origin = mirror_vertical(origin);
+		target = mirror_vertical(target);
+	}
+	switch (pos->position[origin]->get_type() / 2)
+	{
+	case 1:
+		return KingTable[target] - KingTable[origin];
+	case 2:
+		return QueenTable[target] - QueenTable[origin];
+	case 3:
+		return RookTable[target] - RookTable[origin];
+	case 4:
+		return BishopTable[target] - BishopTable[origin];
+	case 5:
+		return KnightTable[target] - KnightTable[origin];
+	case 6: 
+		return PawnTable[target] - PawnTable[origin];
+	default:
+		return 0.0;
+	}
 }
 
 short Evaluator::KingTableEndGame[64] = {
