@@ -79,6 +79,10 @@ public:
 	int set_piece(unsigned type, int pos);
 	std::string pos_as_str();
 	std::string get_attacked_squares();
+	std::string get_checks();
+	std::string get_pins();
+	std::string get_attacked_by_black();
+	std::string get_attacked_by_white();
 	std::list<Move*>* possible_moves();
 	std::list<Move*>* get_legal_captures();
 	void compute_pin_rays();

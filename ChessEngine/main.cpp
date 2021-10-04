@@ -103,8 +103,17 @@ void uci_console() {
 				break;
 			}
 			else if ((*split)[0] == "print") {
-				std::cout << board->pos_as_str() << std::endl << std::endl;
-				std::cout << board->get_attacked_squares() << std::endl;
+				std::cout << board->pos_as_str() << std::endl;
+			}
+			else if ((*split)[0] == "attacks") {
+				std::cout << board->get_attacked_by_white() << std::endl;
+				std::cout << board->get_attacked_by_black() << std::endl;
+			}
+			else if ((*split)[0] == "pins") {
+				std::cout << board->get_pins() << std::endl;
+			}
+			else if ((*split)[0] == "checks") {
+				std::cout << board->get_checks() << std::endl;
 			}
 			else if ((*split)[0] == "unmake") {
 				board->unmake_move();
@@ -117,6 +126,10 @@ void uci_console() {
 					if ((*split)[1] == "startpos") {
 						delete board;
 						board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+					}
+					else if ((*split)[1] == "kiwipete") {
+						delete board;
+						board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
 					}
 					else if (split->size() >= 3) {
 						if ((*split)[1] == "fen") {

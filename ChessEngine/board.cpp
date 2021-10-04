@@ -2696,26 +2696,12 @@ std::string Board::pos_as_str()
 	}
 	for (int i = 0; i < 8; i++)
 	{
-		if (i == 0)
-		{
-			str += "+---";
-		}
-		else
-		{
-			str += "+---";
-		}
+		str += "   +---";
 		for (int j = 1; j < 8; j++)
 		{
 			str += "+---";
 		}
-		if (i == 0)
-		{
-			str += "+\n| ";
-		}
-		else
-		{
-			str += "+\n| ";
-		}
+		str += "+\n " + std::to_string(8 - i) + " | ";
 
 		for (int j = 0; j < 8; j++)
 		{
@@ -2726,11 +2712,13 @@ std::string Board::pos_as_str()
 		}
 		str += '\n';
 	}
+	str += "   ";
 	for (int j = 0; j < 8; j++)
 	{
 		str += "+---";
 	}
 	str += "+\n";
+	str += "     a   b   c   d   e   f   g   h\n";
 	return str;
 }
 
@@ -2767,162 +2755,27 @@ std::string Board::get_attacked_squares()
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
-	std::string str = "attacked by white:\n";
+	std::string str = "";
+	str += get_attacked_by_white();
+	str += get_attacked_by_black();
+	str += get_pins();
+	str += get_checks();
+	return str;
+}
+
+std::string Board::get_checks()
+{
+	this->compute_pin_rays();
+	this->compute_other_checks();
+	std::string str = "checks:\n";
 	for (int i = 0; i < 8; i++)
 	{
-		if (i == 0)
-		{
-			str += "+---";
-		}
-		else
-		{
-			str += "+---";
-		}
+		str += "   +---";
 		for (int j = 1; j < 8; j++)
 		{
 			str += "+---";
 		}
-		if (i == 0)
-		{
-			str += "+\n| ";
-		}
-		else
-		{
-			str += "+\n| ";
-		}
-
-		for (int j = 0; j < 8; j++)
-		{
-			int pos_in_arr = (7 - i) * 8 + j;
-			if (this->attacked_by_white[pos_in_arr])
-			{
-				str += "X";
-			}
-			else
-			{
-				str += " ";
-			}
-			str += " | ";
-		}
-		str += '\n';
-	}
-	for (int j = 0; j < 8; j++)
-	{
-		str += "+---";
-	}
-	str += "+\n";
-	str += "\nattacked by black:\n";
-	for (int i = 0; i < 8; i++)
-	{
-		if (i == 0)
-		{
-			str += "+---";
-		}
-		else
-		{
-			str += "+---";
-		}
-		for (int j = 1; j < 8; j++)
-		{
-			str += "+---";
-		}
-		if (i == 0)
-		{
-			str += "+\n| ";
-		}
-		else
-		{
-			str += "+\n| ";
-		}
-
-		for (int j = 0; j < 8; j++)
-		{
-			int pos_in_arr = (7 - i) * 8 + j;
-			if (this->attacked_by_black[pos_in_arr])
-			{
-				str += "X";
-			}
-			else
-			{
-				str += " ";
-			}
-			str += " | ";
-		}
-		str += '\n';
-	}
-	for (int j = 0; j < 8; j++)
-	{
-		str += "+---";
-	}
-	str += "+\n";
-	str += "\npins:\n";
-	for (int i = 0; i < 8; i++)
-	{
-		if (i == 0)
-		{
-			str += "+---";
-		}
-		else
-		{
-			str += "+---";
-		}
-		for (int j = 1; j < 8; j++)
-		{
-			str += "+---";
-		}
-		if (i == 0)
-		{
-			str += "+\n| ";
-		}
-		else
-		{
-			str += "+\n| ";
-		}
-
-		for (int j = 0; j < 8; j++)
-		{
-			int pos_in_arr = (7 - i) * 8 + j;
-			if (pins[pos_in_arr] > 0)
-			{
-				str += std::to_string(pins[pos_in_arr]);
-			}
-			else
-			{
-				str += ' ';
-			}
-			str += " | ";
-		}
-		str += '\n';
-	}
-	for (int j = 0; j < 8; j++)
-	{
-		str += "+---";
-	}
-	str += "+\n";
-	str += "\nchecks:\n";
-	for (int i = 0; i < 8; i++)
-	{
-		if (i == 0)
-		{
-			str += "+---";
-		}
-		else
-		{
-			str += "+---";
-		}
-		for (int j = 1; j < 8; j++)
-		{
-			str += "+---";
-		}
-		if (i == 0)
-		{
-			str += "+\n| ";
-		}
-		else
-		{
-			str += "+\n| ";
-		}
-
+		str += "+\n " + std::to_string(8 - i) + " | ";
 		for (int j = 0; j < 8; j++)
 		{
 			int pos_in_arr = (7 - i) * 8 + j;
@@ -2938,11 +2791,124 @@ std::string Board::get_attacked_squares()
 		}
 		str += '\n';
 	}
+	str += "   ";
 	for (int j = 0; j < 8; j++)
 	{
 		str += "+---";
 	}
 	str += "+\n";
+	str += "     a   b   c   d   e   f   g   h\n\n";
+	return str;
+}
+
+std::string Board::get_pins()
+{
+	this->compute_pin_rays();
+	std::string str = "pins:\n";
+	for (int i = 0; i < 8; i++)
+	{
+		str += "   +---";
+		for (int j = 1; j < 8; j++)
+		{
+			str += "+---";
+		}
+		str += "+\n " + std::to_string(8 - i) + " | ";
+		for (int j = 0; j < 8; j++)
+		{
+			int pos_in_arr = (7 - i) * 8 + j;
+			if (pins[pos_in_arr] > 0)
+			{
+				str += std::to_string(pins[pos_in_arr]);
+			}
+			else
+			{
+				str += ' ';
+			}
+			str += " | ";
+		}
+		str += '\n';
+	}
+	str += "   ";
+	for (int j = 0; j < 8; j++)
+	{
+		str += "+---";
+	}
+	str += "+\n";
+	str += "     a   b   c   d   e   f   g   h\n\n";
+	return str;
+}
+
+std::string Board::get_attacked_by_black()
+{
+	this->compute_attacked_squares();
+	std::string str = "attacked by black:\n";
+	for (int i = 0; i < 8; i++)
+	{
+		str += "   +---";
+		for (int j = 1; j < 8; j++)
+		{
+			str += "+---";
+		}
+		str += "+\n " + std::to_string(8 - i) + " | ";
+		for (int j = 0; j < 8; j++)
+		{
+			int pos_in_arr = (7 - i) * 8 + j;
+			if (this->attacked_by_black[pos_in_arr])
+			{
+				str += "X";
+			}
+			else
+			{
+				str += " ";
+			}
+			str += " | ";
+		}
+		str += '\n';
+	}
+	str += "   ";
+	for (int j = 0; j < 8; j++)
+	{
+		str += "+---";
+	}
+	str += "+\n";
+	str += "     a   b   c   d   e   f   g   h\n\n";
+	return str;
+}
+
+std::string Board::get_attacked_by_white()
+{
+	this->compute_attacked_squares();
+	std::string str = "attacked by white:\n";
+	for (int i = 0; i < 8; i++)
+	{
+		str += "   +---";
+		for (int j = 1; j < 8; j++)
+		{
+			str += "+---";
+		}
+		str += "+\n " + std::to_string(8 - i) + " | ";
+		for (int j = 0; j < 8; j++)
+		{
+			int pos_in_arr = (7 - i) * 8 + j;
+			if (this->attacked_by_white[pos_in_arr])
+			{
+				str += "X";
+			}
+			else
+			{
+				str += " ";
+			}
+			str += " | ";
+		}
+		str += '\n';
+	}
+	str += "   ";
+	for (int j = 0; j < 8; j++)
+	{
+		str += "+---";
+	}
+	str += "+\n";
+	str += "     a   b   c   d   e   f   g   h\n\n";
 	return str;
 }
 
@@ -3073,7 +3039,7 @@ void Board::make_move(Move* m) {
 	// performing en passant
 	if (this->position[origin]->get_type() == 11 && target == this->stack_en_passant_target_index->back()) {
 		this->position[target - 8]->set_piece_type(0);
-		
+
 	}
 	else if (this->position[origin]->get_type() == 12 && target == this->stack_en_passant_target_index->back()) {
 		this->position[target + 8]->set_piece_type(0);
