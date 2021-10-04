@@ -2912,6 +2912,23 @@ std::string Board::get_attacked_by_white()
 	return str;
 }
 
+std::string Board::get_castling_rights() {
+	std::string str = "";
+	if (this->castling_rights[0]) {
+		str += "K";
+	}
+	if (this->castling_rights[1]) {
+		str += "Q";
+	}
+	if (this->castling_rights[2]) {
+		str += "k";
+	}
+	if (this->castling_rights[3]) {
+		str += "q";
+	}
+	return str;
+}
+
 bool Board::compare(Board* b1, Board* b2)
 {
 	int i1 = b1->last_move_origin;
@@ -2991,9 +3008,13 @@ void Board::make_move(Move* m) {
 	// update king position fields
 	if (this->position[origin]->get_type() == 1) {
 		this->white_king_pos = target;
+		this->castling_rights[0] = false;
+		this->castling_rights[1] = false;
 	}
 	else if (this->position[origin]->get_type() == 2) {
 		this->black_king_pos = target;
+		this->castling_rights[2] = false;
+		this->castling_rights[3] = false;
 	}
 
 	// perform castling
@@ -3025,7 +3046,7 @@ void Board::make_move(Move* m) {
 			this->position[61]->set_piece_type(6);
 			this->position[63]->set_piece_type(0);
 		}
-		else if (target == 2) {
+		else if (target == 58) {
 			this->position[58]->set_piece_type(2);
 			this->position[60]->set_piece_type(0);
 			this->position[59]->set_piece_type(6);
@@ -3051,10 +3072,10 @@ void Board::make_move(Move* m) {
 	else if ((origin == 7 && this->position[origin]->get_type() == 5) || (target == 7 && this->position[target]->get_type() == 5)) {
 		this->castling_rights[0] = false;
 	}
-	else if ((origin == 56 && this->position[origin]->get_type() == 6) || (target == 56 && this->position[target]->get_type() == 5)) {
+	else if ((origin == 56 && this->position[origin]->get_type() == 6) || (target == 56 && this->position[target]->get_type() == 6)) {
 		this->castling_rights[3] = false;
 	}
-	else if ((origin == 63 && this->position[origin]->get_type() == 5) || (target == 63 && this->position[target]->get_type() == 5)) {
+	else if ((origin == 63 && this->position[origin]->get_type() == 6) || (target == 63 && this->position[target]->get_type() == 6)) {
 		this->castling_rights[2] = false;
 	}
 	// manage en passant target square

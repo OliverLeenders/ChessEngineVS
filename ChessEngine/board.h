@@ -83,6 +83,9 @@ public:
 	std::string get_pins();
 	std::string get_attacked_by_black();
 	std::string get_attacked_by_white();
+
+	std::string get_castling_rights();
+
 	std::list<Move*>* possible_moves();
 	std::list<Move*>* get_legal_captures();
 	void compute_pin_rays();

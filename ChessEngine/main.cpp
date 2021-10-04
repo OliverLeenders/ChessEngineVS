@@ -65,6 +65,7 @@ void perft(Board* b, int depth) {
 	for (Move* const& move : *moves) {
 		delete move;
 	}
+	std::cout << std::endl;
 	std::cout << "Nodes searched: " << total << std::endl;
 	std::cout << std::endl;
 	delete e;
@@ -114,6 +115,9 @@ void uci_console() {
 			}
 			else if ((*split)[0] == "checks") {
 				std::cout << board->get_checks() << std::endl;
+			}
+			else if ((*split)[0] == "castling") {
+				std::cout << board->get_castling_rights() << std::endl;
 			}
 			else if ((*split)[0] == "unmake") {
 				board->unmake_move();
