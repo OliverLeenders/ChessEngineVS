@@ -1,3 +1,4 @@
+/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -7,15 +8,17 @@
 #define new DBG_NEW
 #endif
 #endif
-
+*/
 #ifndef Board_H
 #define Board_H
 
 #include "Piece.h"
 #include <string>
 #include <string.h>
+#include <vector>
 #include <list>
 #include "move.h"
+#include "utility.h"
 //#include "evaluator.h"
 
 class Board
@@ -32,14 +35,14 @@ private:
 	/* functions */
 	std::string get_coord_str_from_index(int i);
 	std::string create_move_str(int from, int to);
-	void add_king_moves(std::list<Move*>* moves, int i);
-	void add_queen_moves(std::list<Move*>* moves, int i);
-	void add_rook_moves(std::list<Move*>* moves, int i);
-	void add_bishop_moves(std::list<Move*>* moves, int i);
-	void add_knight_moves(std::list<Move*>* moves, int i);
-	void add_pawn_moves(std::list<Move*>* moves, int i);
-	void promote_with_offset(std::list<Move*>* moves, int i, int j, unsigned promote_to);
-	void move_en_passant(std::list<Move*>* moves, int i, int j);
+	void add_king_moves(std::vector<Move*>* moves, int i);
+	void add_queen_moves(std::vector<Move*>* moves, int i);
+	void add_rook_moves(std::vector<Move*>* moves, int i);
+	void add_bishop_moves(std::vector<Move*>* moves, int i);
+	void add_knight_moves(std::vector<Move*>* moves, int i);
+	void add_pawn_moves(std::vector<Move*>* moves, int i);
+	void promote_with_offset(std::vector<Move*>* moves, int i, int j, unsigned promote_to);
+	void move_en_passant(std::vector<Move*>* moves, int i, int j);
 	void add_diagonal_attack_rays(int i, bool is_white);
 	void add_straight_attack_rays(int i, bool is_white);
 	bool en_passant_illegal();
@@ -47,10 +50,10 @@ private:
 	static bool is_not_capture(Board* b);
 	static bool contains_both_kings(Board* b);
 
-	std::list<bool*>* stack_castling_rights = new std::list<bool*>;
-	std::list<int>* stack_en_passant_target_index = new std::list<int>;
-	std::list<unsigned>* stack_captures = new std::list<unsigned>;
-	std::list<Move*>* stack_moves = new std::list<Move*>;
+	std::vector<bool*>* stack_castling_rights = new std::vector<bool*>;
+	std::vector<int>* stack_en_passant_target_index = new std::vector<int>;
+	std::vector<unsigned>* stack_captures = new std::vector<unsigned>;
+	std::vector<Move*>* stack_moves = new std::vector<Move*>;
 
 public:
 	Board();
@@ -59,8 +62,8 @@ public:
 	int last_move_origin = -1;
 	int last_move_target = -1;
 	Board* prev_pos;
-	// std::list<Board*>* get_sorted_legal_moves(Evaluator *e);
-	// std::list<Board*>* get_sorted_legal_captures(Evaluator* e);
+	// std::vector<Board*>* get_sorted_legal_moves(Evaluator *e);
+	// std::vector<Board*>* get_sorted_legal_captures(Evaluator* e);
 	int en_passant_target_index = -1;
 
 	unsigned int num_checks = 0;
@@ -72,6 +75,13 @@ public:
 	*/
 	bool* castling_rights = new bool[4];
 	Piece** position = new Piece * [64];
+
+	std::list<int>* queen_list = new std::list<int>;
+	std::list<int>* rook_list = new std::list<int>;
+	std::list<int>* bishop_list = new std::list<int>;
+	std::list<int>* knight_list = new std::list<int>;
+	std::list<int>* pawn_list = new std::list<int>;
+
 	Board(std::string fen);
 	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
 	void switch_move();
@@ -86,13 +96,13 @@ public:
 
 	std::string get_castling_rights();
 
-	std::list<Move*>* possible_moves();
-	std::list<Move*>* get_legal_captures();
+	std::vector<Move*>* possible_moves();
+	std::vector<Move*>* get_legal_captures();
 	void compute_pin_rays();
 	void compute_other_checks();
 	std::string get_last_move();
 	void compute_attacked_squares();
-	void move_with_offset(std::list<Move*>* moves, int i, int j);
+	void move_with_offset(std::vector<Move*>* moves, int i, int j);
 	Board* clone();
 	bool equals(Board* b);
 	bool white_to_move;

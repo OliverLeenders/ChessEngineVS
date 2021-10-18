@@ -1,3 +1,4 @@
+/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -7,6 +8,7 @@
 #define new DBG_NEW
 #endif
 #endif
+*/
 
 #ifndef Move_H
 #define Move_H

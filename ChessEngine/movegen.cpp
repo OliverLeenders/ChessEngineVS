@@ -33,7 +33,7 @@ int Movegen::generate_moves(int depth)
     else
     {
         int move_count = 0;
-        std::list<Move*>* possible_moves = this->starting_pos->possible_moves();
+        std::vector<Move*>* possible_moves = this->starting_pos->possible_moves();
         for (Move* const& b : *possible_moves)
         {
             this->starting_pos->make_move(b);

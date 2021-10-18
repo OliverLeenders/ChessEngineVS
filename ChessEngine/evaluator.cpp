@@ -44,11 +44,26 @@ bool Evaluator::contains_z_hash(uint64_t hash)
 uint64_t Evaluator::zobrist_hash(Board* b)
 {
 	uint64_t hash = 0;
-	int i = 0;
-	for (; i < 64; i++)
-	{
-		hash = hash xor this->zobrist_base_numbers[(i * 12) + b->position[i]->get_type()];
+	
+	std::list<int>::iterator itr;
+	hash = hash xor this->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos]->get_type()];
+	hash = hash xor this->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos]->get_type()];
+	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
+		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
 	}
+	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
+		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
+		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
+		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
+		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	int i = 64;
 	for (int j = 0; j < 4; j++)
 	{
 		if (b->castling_rights[j])
@@ -74,65 +89,55 @@ int Evaluator::mirror_vertical(int i) {
 double Evaluator::evaluate(Board* b)
 {
 	double e = 0.0;
-	for (int i = 0; i < 64; i++)
-	{
-		if (b->position[i]->is_white())
-		{
-			int index = 8 * (7 - (i / 8)) + (i % 8);
-			if (b->position[i]->get_type() == 1)
-			{
-				e += 3.5 + this->KingTable[index] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 3)
-			{
-				e += 9.0 + this->QueenTable[index] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 5)
-			{
-				e += 5.0 + this->RookTable[index] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 7)
-			{
-				e += 3.2 + this->BishopTable[index] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 9)
-			{
-				e += 3.0 + this->KnightTable[index] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 11)
-			{
-				e += 1.0 + this->PawnTable[index] / 100.0;
-			}
+	e += 3.5 + this->KingTable[b->white_king_pos] / 100.0;
+	e -= 3.5 + this->KingTable[this->mirror_vertical(b->black_king_pos)] / 100.0;
+
+	std::list<int>::iterator itr;
+	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
+		if (b->position[*itr]->is_white()) {
+			e += 9.0 + this->QueenTable[*itr] / 100.0;
 		}
-		else if (b->position[i]->is_black())
-		{
-			//std::cout << index << std::endl;
-			if (b->position[i]->get_type() == 2)
-			{
-				e -= 3.5 + this->KingTable[i] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 4)
-			{
-				e -= 9.0 + this->QueenTable[i] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 6)
-			{
-				e -= 5.0 + this->RookTable[i] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 8)
-			{
-				e -= 3.2 + this->BishopTable[i] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 10)
-			{
-				e -= 3.0 + this->KnightTable[i] / 100.0;
-			}
-			else if (b->position[i]->get_type() == 12)
-			{
-				e -= 1.0 + this->PawnTable[i] / 100.0;
-			}
+		else {
+			e -= 9.0 + this->QueenTable[this->mirror_vertical(*itr)] / 100.0;
 		}
 	}
+	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
+		if (b->position[*itr]->is_white()) {
+			e += 5.0 + this->RookTable[*itr] / 100.0;
+		}
+		else {
+			e -= 5.0 + this->RookTable[this->mirror_vertical(*itr)] / 100.0;
+		}
+	}
+
+	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
+		if (b->position[*itr]->is_white()) {
+			e += 3.2 + this->BishopTable[*itr] / 100.0;
+		}
+		else {
+			e -= 3.2 + this->BishopTable[this->mirror_vertical(*itr)] / 100.0;
+		}
+	}
+
+	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
+		if (b->position[*itr]->is_white()) {
+			e += 3.0 + this->KnightTable[*itr] / 100.0;
+		}
+		else {
+			e -= 3.0 + this->KnightTable[this->mirror_vertical(*itr)] / 100.0;
+		}
+	}
+
+	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
+		if (b->position[*itr]->is_white()) {
+			e += 1.0 + this->PawnTable[*itr] / 100.0;
+		}
+		else {
+			e -= 1.0 + this->PawnTable[this->mirror_vertical(*itr)] / 100.0;
+		}
+	}
+
+	
 	if (b->white_to_move)
 	{
 		return e;
@@ -172,7 +177,7 @@ bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2) {
 	}
 }
 
-double Evaluator::score_move(Board *pos, Move* m) {
+double Evaluator::score_move(Board* pos, Move* m) {
 	int origin = m->origin;
 	int target = m->target;
 
@@ -192,7 +197,7 @@ double Evaluator::score_move(Board *pos, Move* m) {
 		return BishopTable[target] - BishopTable[origin];
 	case 5:
 		return KnightTable[target] - KnightTable[origin];
-	case 6: 
+	case 6:
 		return PawnTable[target] - PawnTable[origin];
 	default:
 		return 0.0;

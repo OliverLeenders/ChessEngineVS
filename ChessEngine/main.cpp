@@ -1,3 +1,4 @@
+/*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -7,7 +8,7 @@
 #define new DBG_NEW
 #endif
 #endif
-
+*/
 // includes
 #include "board.h"
 #include "movegen.h"
@@ -49,9 +50,9 @@ int main(int argc, char** argv)
  * \param depth depth to search to
  */
 void perft(Board* b, int depth) {
-	std::list<Move*>* moves = b->possible_moves();
+	std::vector<Move*>* moves = b->possible_moves();
 	Evaluator* e = new Evaluator();
-	moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
+	//moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
 	for (Move* const& move : *moves) {
 		b->make_move(move);
@@ -125,6 +126,12 @@ void uci_console() {
 			else if ((*split)[0] == "break") {
 				std::cout << "triggered breakpoint" << std::endl;
 			}
+			else if ((*split)[0] == "eval") {
+				Evaluator* e = new Evaluator();
+				double d = e->evaluate(board);
+				std::cout << d << std::endl;
+				delete e;
+			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
 					if ((*split)[1] == "startpos") {
@@ -134,6 +141,10 @@ void uci_console() {
 					else if ((*split)[1] == "kiwipete") {
 						delete board;
 						board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+					}
+					else if ((*split)[1] == "pos3") {
+						delete board;
+						board = new Board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
 					}
 					else if (split->size() >= 3) {
 						if ((*split)[1] == "fen") {

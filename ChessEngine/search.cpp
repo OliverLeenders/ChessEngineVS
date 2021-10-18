@@ -57,8 +57,8 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		// getting legal moves
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
-		std::list<Move*>* moves = pos->possible_moves();
-		moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
+		std::vector<Move*>* moves = pos->possible_moves();
+		std::sort(moves->begin(), moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
@@ -197,8 +197,8 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 	else
 	{
 		std::list<Move*>* line = new std::list<Move*>;
-		std::list<Move*>* moves = pos->possible_moves();
-		moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
+		std::vector<Move*>* moves = pos->possible_moves();
+		std::sort(moves->begin(), moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 		uint64_t pos_hash = e->zobrist_hash(pos);
 		bool pos_is_transposition = e->contains_z_hash(pos_hash);
 		if (moves->size() == 0 && pos->num_checks > 0)
@@ -223,7 +223,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 		Move* pv_pos = prev_pv->front();
 		prev_pv->pop_front();
 
-		moves->push_front(pv_pos);
+		moves->insert(moves->begin(), pv_pos);
 		int i = 0;
 		for (Move* const& move : *moves)
 		{
@@ -339,8 +339,8 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 		alpha = stand_pat;
 	}
 
-	std::list<Move*>* moves = pos->get_legal_captures();
-	moves->sort([pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
+	std::vector<Move*>* moves = pos->get_legal_captures();
+	std::sort(moves->begin(), moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
