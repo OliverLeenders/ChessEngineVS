@@ -12,8 +12,6 @@ Board::Board()
 		this->position[i] = new Piece(0);
 	}
 	this->white_to_move = true;
-	this->last_move_origin = -1;
-	this->last_move_target = -1;
 	for (int i = 0; i < 4; i++)
 	{
 		this->castling_rights[i] = true;
@@ -24,6 +22,8 @@ Board::Board()
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
+	transposition_table = new zobrist_hashmap;
+	this->pos_hash = this->hash(this);
 }
 /**
  * @brief Construct a new Board:: Board object from a given position
@@ -42,8 +42,6 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 	{
 		this->castling_rights[i] = set_castling_rights[i];
 	}
-	this->last_move_origin = -1;
-	this->last_move_target = -1;
 	delete[] set_pos;
 	delete[] set_castling_rights;
 	for (int i = 0; i < 64; i++)
@@ -52,6 +50,8 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
+	transposition_table = new zobrist_hashmap;
+	this->pos_hash = this->hash(this);
 }
 
 /**
@@ -307,8 +307,6 @@ rest:
 	{
 		this->en_passant_target_index = -1;
 	}
-	this->last_move_origin = -1;
-	this->last_move_target = -1;
 	//std::cout << fen[i] << std::endl;
 	/*
 	for (int j = 0; j < 4; j++)
@@ -323,6 +321,8 @@ rest:
 		this->pins[i] = 0;
 		this->checks[i] = false;
 	}
+	transposition_table = new zobrist_hashmap;
+	this->pos_hash = this->hash(this);
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
@@ -351,13 +351,14 @@ Board::~Board()
 	{
 		delete this->position[i];
 	}
-	delete[] this->attacked_by_black;
-	delete[] this->attacked_by_white;
+	delete[] this->attacked;
 	delete[] this->castling_rights;
 	delete[] this->check_direction;
 	delete[] this->pins;
 	delete[] this->checks;
 	delete[] this->position;
+
+	delete this->transposition_table;
 
 	delete this->queen_list;
 	delete this->rook_list;
@@ -368,7 +369,7 @@ Board::~Board()
 	this->stack_captures->clear();
 	delete this->stack_captures;
 
-	for (Move *m : *this->stack_moves) {
+	for (Move* m : *this->stack_moves) {
 		delete m;
 	}
 	this->stack_moves->clear();
@@ -380,208 +381,128 @@ Board::~Board()
 	this->stack_castling_rights->clear();
 	delete this->stack_castling_rights;
 
+	this->stack_hashes->clear();
+	delete this->stack_hashes;
+
 	this->stack_en_passant_target_index;
 	delete this->stack_en_passant_target_index;
 }
 
+
+uint64_t Board::hash(Board* b)
+{
+	uint64_t hash = 0;
+
+	std::list<int>::iterator itr;
+	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos]->get_type()];
+	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos]->get_type()];
+	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	int i = 64;
+	for (int j = 0; j < 4; j++)
+	{
+		if (b->castling_rights[j])
+		{
+			hash = hash xor this->transposition_table->zobrist_base_numbers[i + j];
+		}
+	}
+	if (b->en_passant_target_index > 0)
+	{
+		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
+	}
+	if (!b->white_to_move)
+	{
+		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 12];
+	}
+	return hash;
+}
+
+
+
 void Board::compute_attacked_squares()
 {
-	for (int i = 0; i < 64; i++)
-	{
-		this->attacked_by_white[i] = false;
-		this->attacked_by_black[i] = false;
+	for (int i = 0; i < 64; i++) {
+		this->attacked[i] = false;
 	}
-	for (int i = 0; i < 64; i++)
-	{
-		Piece* p = this->position[i];
-		if (!p->is_empty())
-		{
-			if (p->get_type() == 1) // white king
-			{
-				if (i % 8 < 7)
-				{
-					this->attacked_by_white[i + 1] = true;
+	if (!this->white_to_move) {
+		int pos = this->white_king_pos;
+		this->compute_king_attacked_squares(pos);
+		for (int i : *this->queen_list) {
+			if (this->position[i]->is_white()) {
+				this->add_diagonal_attack_rays(i);
+				this->add_straight_attack_rays(i);
+			}
+		}
+		for (int i : *this->rook_list) {
+			if (this->position[i]->is_white()) {
+				this->add_straight_attack_rays(i);
+			}
+		}
+		for (int i : *this->bishop_list) {
+			if (this->position[i]->is_white()) {
+				this->add_diagonal_attack_rays(i);
+			}
+		}
+		for (int i : *this->knight_list) {
+			if (this->position[i]->is_white()) {
+				this->compute_knight_attacked_squares(i);
+			}
+		}
+		for (int i : *this->pawn_list) {
+			if (this->position[i]->is_white()) {
+				if (i % 8 < 7) {
+					this->attacked[i + 9] = true;
 				}
-				if (i % 8 > 0)
-				{
-					this->attacked_by_white[i - 1] = true;
-				}
-				if (i >= 8)
-				{
-					this->attacked_by_white[i - 8] = true;
-				}
-				if (i < 56)
-				{
-					this->attacked_by_white[i + 8] = true;
-				}
-				if (i % 8 < 7 && i >= 8)
-				{
-					this->attacked_by_white[i - 7] = true;
-				}
-				if (i % 8 > 0 && i >= 8)
-				{
-					this->attacked_by_white[i - 9] = true;
-				}
-				if (i % 8 < 7 && i < 56)
-				{
-					this->attacked_by_white[i + 9] = true;
-				}
-				if (i % 8 > 0 && i < 56)
-				{
-					this->attacked_by_white[i + 7] = true;
+				if (i % 8 > 0) {
+					this->attacked[i + 7] = true;
 				}
 			}
-			else if (p->get_type() == 2) // black king
-			{
-				if (i % 8 < 7)
-				{
-					this->attacked_by_black[i + 1] = true;
-				}
-				if (i % 8 > 0)
-				{
-					this->attacked_by_black[i - 1] = true;
-				}
-				if (i >= 8)
-				{
-					this->attacked_by_black[i - 8] = true;
-				}
-				if (i < 56)
-				{
-					this->attacked_by_black[i + 8] = true;
-				}
-				if (i % 8 < 7 && i >= 8)
-				{
-					this->attacked_by_black[i - 7] = true;
-				}
-				if (i % 8 > 0 && i >= 8)
-				{
-					this->attacked_by_black[i - 9] = true;
-				}
-				if (i % 8 < 7 && i < 56)
-				{
-					this->attacked_by_black[i + 9] = true;
-				}
-				if (i % 8 > 0 && i < 56)
-				{
-					this->attacked_by_black[i + 7] = true;
-				}
+		}
+	}
+	else {
+		int pos = this->black_king_pos;
+		this->compute_king_attacked_squares(pos);
+		for (int i : *this->queen_list) {
+			if (this->position[i]->is_black()) {
+				this->add_diagonal_attack_rays(i);
+				this->add_straight_attack_rays(i);
 			}
-			else if (p->get_type() == 3) // white queen
-			{
-				add_diagonal_attack_rays(i, true);
-				add_straight_attack_rays(i, true);
+		}
+		for (int i : *this->rook_list) {
+			if (this->position[i]->is_black()) {
+				this->add_straight_attack_rays(i);
 			}
-			else if (p->get_type() == 4) // black queen
-			{
-				add_diagonal_attack_rays(i, false);
-				add_straight_attack_rays(i, false);
+		}
+		for (int i : *this->bishop_list) {
+			if (this->position[i]->is_black()) {
+				this->add_diagonal_attack_rays(i);
 			}
-			else if (p->get_type() == 5) // white rook
-			{
-				add_straight_attack_rays(i, true);
+		}
+		for (int i : *this->knight_list) {
+			if (this->position[i]->is_black()) {
+				this->compute_knight_attacked_squares(i);
 			}
-			else if (p->get_type() == 6) // black rook
-			{
-				add_straight_attack_rays(i, false);
-			}
-			else if (p->get_type() == 7) // white bishop
-			{
-				add_diagonal_attack_rays(i, true);
-			}
-			else if (p->get_type() == 8) // black bishop
-			{
-				add_diagonal_attack_rays(i, false);
-			}
-			else if (p->get_type() == 9) // white knight
-			{
-				if (i % 8 < 7 && i < 48)
-				{
-					this->attacked_by_white[i + 17] = true;
+		}
+		for (int i : *this->pawn_list) {
+			if (this->position[i]->is_black()) {
+				if (i % 8 < 7) {
+					this->attacked[i - 7] = true;
 				}
-				if (i % 8 > 0 && i < 48)
-				{
-					this->attacked_by_white[i + 15] = true;
-				}
-				if (i % 8 < 6 && i < 56)
-				{
-					this->attacked_by_white[i + 10] = true;
-				}
-				if (i % 8 > 1 && i < 56)
-				{
-					this->attacked_by_white[i + 6] = true;
-				}
-				if (i % 8 > 0 && i >= 16)
-				{
-					this->attacked_by_white[i - 17] = true;
-				}
-				if (i % 8 < 7 && i >= 16)
-				{
-					this->attacked_by_white[i - 15] = true;
-				}
-				if (i % 8 < 6 && i >= 8)
-				{
-					this->attacked_by_white[i - 6] = true;
-				}
-				if (i % 8 > 1 && i >= 8)
-				{
-					this->attacked_by_white[i - 10] = true;
-				}
-			}
-			else if (p->get_type() == 10) // black knight
-			{
-				if (i % 8 < 7 && i < 48)
-				{
-					this->attacked_by_black[i + 17] = true;
-				}
-				if (i % 8 > 0 && i < 48)
-				{
-					this->attacked_by_black[i + 15] = true;
-				}
-				if (i % 8 < 6 && i < 56)
-				{
-					this->attacked_by_black[i + 10] = true;
-				}
-				if (i % 8 > 1 && i < 56)
-				{
-					this->attacked_by_black[i + 6] = true;
-				}
-				if (i % 8 > 0 && i >= 16)
-				{
-					this->attacked_by_black[i - 17] = true;
-				}
-				if (i % 8 < 7 && i >= 16)
-				{
-					this->attacked_by_black[i - 15] = true;
-				}
-				if (i % 8 < 6 && i >= 8)
-				{
-					this->attacked_by_black[i - 6] = true;
-				}
-				if (i % 8 > 1 && i >= 8)
-				{
-					this->attacked_by_black[i - 10] = true;
-				}
-			}
-			else if (p->get_type() == 11) // white pawn
-			{
-				if (i % 8 > 0 && i < 56)
-				{
-					this->attacked_by_white[i + 7] = true;
-				}
-				if (i % 8 < 7 && i < 56)
-				{
-					this->attacked_by_white[i + 9] = true;
-				}
-			}
-			else if (p->get_type() == 12) // black pawn
-			{
-				if (i % 8 > 0 && i >= 8)
-				{
-					this->attacked_by_black[i - 9] = true;
-				}
-				if (i % 8 < 7 && i >= 8)
-				{
-					this->attacked_by_black[i - 7] = true;
+				if (i % 8 > 0) {
+					this->attacked[i - 9] = true;
 				}
 			}
 		}
@@ -589,7 +510,63 @@ void Board::compute_attacked_squares()
 	return;
 }
 
-void Board::add_straight_attack_rays(int i, bool is_white)
+void Board::compute_king_attacked_squares(int pos)
+{
+	if (pos % 8 < 7) {
+		this->attacked[pos + 1] = true;
+	}
+	if (pos % 8 > 0) {
+		this->attacked[pos - 1] = true;
+	}
+	if (pos < 56) {
+		this->attacked[pos + 8] = true;
+	}
+	if (pos > 7) {
+		this->attacked[pos - 8] = true;
+	}
+	if (pos % 8 < 7 && pos < 56) {
+		this->attacked[pos + 9] = true;
+	}
+	if (pos % 8 < 7 && pos > 7) {
+		this->attacked[pos - 7] = true;
+	}
+	if (pos % 8 > 0 && pos < 56) {
+		this->attacked[pos + 7] = true;
+	}
+	if (pos % 8 > 0 && pos > 7) {
+		this->attacked[pos - 9] = true;
+	}
+}
+
+void Board::compute_knight_attacked_squares(int pos) {
+	if (pos % 8 < 7 && pos < 48) {
+		this->attacked[pos + 17] = true;
+	}
+	if (pos % 8 > 0 && pos < 48) {
+		this->attacked[pos + 15] = true;
+	}
+	if (pos % 8 < 7 && pos > 15) {
+		this->attacked[pos - 15] = true;
+	}
+	if (pos % 8 > 0 && pos > 15) {
+		this->attacked[pos - 17] = true;
+	}
+	if (pos % 8 < 6 && pos < 56) {
+		this->attacked[pos + 10] = true;
+	}
+	if (pos % 8 > 1 && pos < 56) {
+		this->attacked[pos + 6] = true;
+	}
+	if (pos % 8 < 6 && pos > 7) {
+		this->attacked[pos - 6] = true;
+	}
+	if (pos % 8 > 1 && pos > 7) {
+		this->attacked[pos - 10] = true;
+	}
+	return;
+}
+
+void Board::add_straight_attack_rays(int i)
 {
 	int j = i;
 	while (j < 56)
@@ -597,18 +574,12 @@ void Board::add_straight_attack_rays(int i, bool is_white)
 		j += 8;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -617,18 +588,12 @@ void Board::add_straight_attack_rays(int i, bool is_white)
 		j -= 8;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -637,18 +602,12 @@ void Board::add_straight_attack_rays(int i, bool is_white)
 		j++;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -657,23 +616,17 @@ void Board::add_straight_attack_rays(int i, bool is_white)
 		j--;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 }
 
-void Board::add_diagonal_attack_rays(int i, bool is_white)
+void Board::add_diagonal_attack_rays(int i)
 {
 	int j = i;
 	while (j % 8 < 7 && j < 56) // diagonally right up
@@ -681,18 +634,12 @@ void Board::add_diagonal_attack_rays(int i, bool is_white)
 		j += 9;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -701,18 +648,12 @@ void Board::add_diagonal_attack_rays(int i, bool is_white)
 		j += 7;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -721,18 +662,12 @@ void Board::add_diagonal_attack_rays(int i, bool is_white)
 		j -= 7;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 	j = i;
@@ -741,18 +676,12 @@ void Board::add_diagonal_attack_rays(int i, bool is_white)
 		j -= 9;
 		if (!this->position[j]->is_empty())
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 			break;
 		}
 		else
 		{
-			if (is_white)
-				this->attacked_by_white[j] = true;
-			else
-				this->attacked_by_black[j] = true;
+			this->attacked[j] = true;
 		}
 	}
 }
@@ -771,7 +700,7 @@ std::vector<Move*>* Board::possible_moves()
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
-	
+
 	if (this->white_to_move)
 	{
 		add_king_moves(moves, this->white_king_pos);
@@ -780,7 +709,7 @@ std::vector<Move*>* Board::possible_moves()
 	{
 		add_king_moves(moves, this->black_king_pos);
 	}
-	
+
 	if (this->num_checks > 1)
 	{
 		return moves;
@@ -1916,14 +1845,6 @@ void Board::compute_pin_rays()
 	}
 }
 
-bool Board::is_not_capture(Board* b)
-{
-	if (b->prev_pos->position[b->last_move_target]->is_empty()) {
-		delete b;
-		return true;
-	}
-	return false;
-}
 
 std::vector<Move*>* Board::get_legal_captures()
 {
@@ -1941,17 +1862,7 @@ std::vector<Move*>* Board::get_legal_captures()
 	return moves;
 }
 
-bool Board::contains_both_kings(Board* b)
-{
-	if (b->position[b->white_king_pos]->get_type() == 1 && b->position[b->black_king_pos]->get_type() == 2)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
+
 
 /**
  * @brief generates pawn moves for a piece at a specific position
@@ -2559,7 +2470,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 	{
 		if (this->castling_rights[0])
 		{
-			if ((!this->attacked_by_black[4]) && (!this->attacked_by_black[5]) && (!this->attacked_by_black[6]) && this->position[5]->is_empty() && this->position[6]->is_empty())
+			if ((!this->attacked[4]) && (!this->attacked[5]) && (!this->attacked[6]) && this->position[5]->is_empty() && this->position[6]->is_empty())
 			{
 				Move* move = new Move(4, 6, false, false, 0);
 				moves->push_back(move);
@@ -2567,7 +2478,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		}
 		if (this->castling_rights[1])
 		{
-			if ((!this->attacked_by_black[4]) && (!this->attacked_by_black[3]) && (!this->attacked_by_black[2]) && this->position[3]->is_empty() && this->position[2]->is_empty() && this->position[1]->is_empty())
+			if ((!this->attacked[4]) && (!this->attacked[3]) && (!this->attacked[2]) && this->position[3]->is_empty() && this->position[2]->is_empty() && this->position[1]->is_empty())
 			{
 				Move* move = new Move(4, 2, false, false, 0);
 				moves->push_back(move);
@@ -2578,7 +2489,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 	{
 		if (this->castling_rights[2])
 		{
-			if ((!this->attacked_by_white[60]) && (!this->attacked_by_white[61]) && (!this->attacked_by_white[62]) && this->position[61]->is_empty() && this->position[62]->is_empty())
+			if ((!this->attacked[60]) && (!this->attacked[61]) && (!this->attacked[62]) && this->position[61]->is_empty() && this->position[62]->is_empty())
 			{
 				Move* move = new Move(60, 62, false, false, 0);
 				moves->push_back(move);
@@ -2586,7 +2497,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		}
 		if (this->castling_rights[3])
 		{
-			if ((!this->attacked_by_white[60]) && (!this->attacked_by_white[59]) && (!this->attacked_by_white[58]) && this->position[59]->is_empty() && this->position[58]->is_empty() && this->position[57]->is_empty())
+			if ((!this->attacked[60]) && (!this->attacked[59]) && (!this->attacked[58]) && this->position[59]->is_empty() && this->position[58]->is_empty() && this->position[57]->is_empty())
 			{
 				Move* move = new Move(60, 58, false, false, 0);
 				moves->push_back(move);
@@ -2604,10 +2515,10 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
  */
 void Board::move_with_offset(std::vector<Move*>* moves, int i, int j)
 {
-	if (this->position[i]->get_type() == 1 && this->attacked_by_black[j]) {
+	if (this->position[i]->get_type() == 1 && this->attacked[j]) {
 		return;
 	}
-	else if (this->position[i]->get_type() == 2 && this->attacked_by_white[j]) {
+	else if (this->position[i]->get_type() == 2 && this->attacked[j]) {
 		return;
 	}
 	if (this->position[j]->is_empty()) {
@@ -2752,8 +2663,7 @@ std::string Board::get_attacked_squares()
 	compute_pin_rays();
 	compute_other_checks();
 	std::string str = "";
-	str += get_attacked_by_white();
-	str += get_attacked_by_black();
+	str += get_attacked();
 	str += get_pins();
 	str += get_checks();
 	return str;
@@ -2834,44 +2744,7 @@ std::string Board::get_pins()
 	return str;
 }
 
-std::string Board::get_attacked_by_black()
-{
-	this->compute_attacked_squares();
-	std::string str = "attacked by black:\n";
-	for (int i = 0; i < 8; i++)
-	{
-		str += "   +---";
-		for (int j = 1; j < 8; j++)
-		{
-			str += "+---";
-		}
-		str += "+\n " + std::to_string(8 - i) + " | ";
-		for (int j = 0; j < 8; j++)
-		{
-			int pos_in_arr = (7 - i) * 8 + j;
-			if (this->attacked_by_black[pos_in_arr])
-			{
-				str += "X";
-			}
-			else
-			{
-				str += " ";
-			}
-			str += " | ";
-		}
-		str += '\n';
-	}
-	str += "   ";
-	for (int j = 0; j < 8; j++)
-	{
-		str += "+---";
-	}
-	str += "+\n";
-	str += "     a   b   c   d   e   f   g   h\n\n";
-	return str;
-}
-
-std::string Board::get_attacked_by_white()
+std::string Board::get_attacked()
 {
 	this->compute_attacked_squares();
 	std::string str = "attacked by white:\n";
@@ -2886,7 +2759,7 @@ std::string Board::get_attacked_by_white()
 		for (int j = 0; j < 8; j++)
 		{
 			int pos_in_arr = (7 - i) * 8 + j;
-			if (this->attacked_by_white[pos_in_arr])
+			if (this->attacked[pos_in_arr])
 			{
 				str += "X";
 			}
@@ -2925,27 +2798,7 @@ std::string Board::get_castling_rights() {
 	return str;
 }
 
-bool Board::compare(Board* b1, Board* b2)
-{
-	int i1 = b1->last_move_origin;
-	int j1 = b1->last_move_target;
-	int i2 = b2->last_move_origin;
-	int j2 = b2->last_move_target;
-	Board* prev_1 = b1->prev_pos;
-	Board* prev_2 = b2->prev_pos;
-	if ((!prev_1->position[j1]->is_empty()) && (!prev_2->position[j2]->is_empty())) {
-		double diff_1 = prev_1->position[j1]->value() - prev_1->position[i1]->value();
-		double diff_2 = prev_2->position[j2]->value() - prev_2->position[i2]->value();
-		return diff_1 > diff_2;
-	}
-	else if (!prev_2->position[j2]->is_empty()) {
-		return 0 > 1;
-	}
-	else if (!prev_1->position[j1]->is_empty()) {
-		return 0 < 1;
-	}
-	return 0 > 1;
-}
+
 
 bool Board::equals(Board* b)
 {
@@ -3131,7 +2984,7 @@ void Board::make_move(Move* m) {
 			Utility::remove_first_occurance(this->pawn_list, target);
 		}
 	}
-	
+
 	if (this->position[origin]->get_type() == 3 || this->position[origin]->get_type() == 4) {
 		for (itr = this->queen_list->begin(); itr != this->queen_list->end(); itr++) {
 			if (*itr == origin) {
@@ -3139,28 +2992,32 @@ void Board::make_move(Move* m) {
 				break;
 			}
 		}
-	} else if (this->position[origin]->get_type() == 5 || this->position[origin]->get_type() == 6) {
+	}
+	else if (this->position[origin]->get_type() == 5 || this->position[origin]->get_type() == 6) {
 		for (itr = this->rook_list->begin(); itr != this->rook_list->end(); itr++) {
 			if (*itr == origin) {
 				*itr = target;
 				break;
 			}
 		}
-	} else if (this->position[origin]->get_type() == 7 || this->position[origin]->get_type() == 8) {
+	}
+	else if (this->position[origin]->get_type() == 7 || this->position[origin]->get_type() == 8) {
 		for (itr = this->bishop_list->begin(); itr != this->bishop_list->end(); itr++) {
 			if (*itr == origin) {
 				*itr = target;
 				break;
 			}
 		}
-	} else if (this->position[origin]->get_type() == 9 || this->position[origin]->get_type() == 10) {
+	}
+	else if (this->position[origin]->get_type() == 9 || this->position[origin]->get_type() == 10) {
 		for (itr = this->knight_list->begin(); itr != this->knight_list->end(); itr++) {
 			if (*itr == origin) {
 				*itr = target;
 				break;
 			}
 		}
-	} else if (this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) {
+	}
+	else if (this->position[origin]->get_type() == 11 || this->position[origin]->get_type() == 12) {
 		for (itr = this->pawn_list->begin(); itr != this->pawn_list->end(); itr++) {
 			if (*itr == origin) {
 				*itr = target;
@@ -3168,7 +3025,7 @@ void Board::make_move(Move* m) {
 			}
 		}
 	}
-	
+
 	this->position[target]->set_piece_type(this->position[origin]->get_type());
 	this->position[origin]->set_piece_type(0);
 
@@ -3177,11 +3034,14 @@ void Board::make_move(Move* m) {
 		Utility::remove_first_occurance(this->pawn_list, target);
 		if (promotion_type == 3 || promotion_type == 4) {
 			this->queen_list->push_back(target);
-		} else if (promotion_type == 5 || promotion_type == 6) {
+		}
+		else if (promotion_type == 5 || promotion_type == 6) {
 			this->rook_list->push_back(target);
-		} else if (promotion_type == 7 || promotion_type == 8) {
+		}
+		else if (promotion_type == 7 || promotion_type == 8) {
 			this->bishop_list->push_back(target);
-		} else if (promotion_type == 9 || promotion_type == 10) {
+		}
+		else if (promotion_type == 9 || promotion_type == 10) {
 			this->knight_list->push_back(target);
 		}
 	}
@@ -3361,7 +3221,7 @@ void Board::unmake_move() {
 		}
 		if (promotion_type == 3 || promotion_type == 4) {
 			Utility::remove_first_occurance(this->queen_list, origin);
-		} 
+		}
 		else if (promotion_type == 5 || promotion_type == 6) {
 			Utility::remove_first_occurance(this->rook_list, origin);
 		}

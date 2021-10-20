@@ -4,10 +4,10 @@
  * @brief Construct a new Search:: Search object
  *
  */
-/**
- * @brief Destroy the Search:: Search object
- *
- */
+ /**
+  * @brief Destroy the Search:: Search object
+  *
+  */
 Search::~Search()
 {
 }
@@ -55,20 +55,20 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 	{
 		// initializing PV line
 		// getting legal moves
-		uint64_t pos_hash = e->zobrist_hash(pos);
-		bool pos_is_transposition = e->contains_z_hash(pos_hash);
+		uint64_t pos_hash = pos->hash(pos);
+		bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 		std::vector<Move*>* moves = pos->possible_moves();
 		std::sort(moves->begin(), moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			e->add_hash(pos_hash, DBL_MAX);
+			pos->transposition_table->add(pos_hash, DBL_MAX);
 			return DBL_MAX;
 		}
 		else if (moves->size() == 0)
 		{
 			delete moves;
-			e->add_hash(pos_hash, 0.00);
+			pos->transposition_table->add(pos_hash, 0.00);
 			return 0.00;
 		}
 		std::list<Move*>* line = new std::list<Move*>;
@@ -78,15 +78,15 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		{
 			pos->make_move(move);
 			double score;
-			uint64_t move_hash = e->zobrist_hash(pos);
-			bool is_transposition = e->contains_z_hash(move_hash);
+			uint64_t move_hash = pos->hash(pos);
+			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
 
 			if (i == 0 && left_most)
 			{
 				if (is_transposition)
 				{
 					// std::cout << "here" << std::endl;
-					score = e->zobrist_hashmap->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second;
 				}
 				else
 				{
@@ -108,7 +108,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 			{
 				if (is_transposition)
 				{
-					score = e->zobrist_hashmap->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second;
 				}
 				else
 				{
@@ -128,7 +128,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 					delete line;
 					delete moves;
 					if (!pos_is_transposition) {
-						e->add_hash(pos_hash, beta);
+						pos->transposition_table->add(pos_hash, score);
 					}
 					return beta;
 					//  fail hard beta-cutoff
@@ -152,6 +152,11 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 			}
 			i++;
 			pos->unmake_move();
+			for (Move* const& b : *line)
+			{
+				delete b;
+			}
+			line->clear();
 		}
 		for (Move* const& b : *moves)
 		{
@@ -165,7 +170,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		delete moves;
 
 		if (!pos_is_transposition) {
-			e->add_hash(pos_hash, alpha);
+			pos->transposition_table->add(pos_hash, alpha);
 		}
 	}
 	return alpha;
@@ -198,15 +203,14 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 	{
 		std::list<Move*>* line = new std::list<Move*>;
 		std::vector<Move*>* moves = pos->possible_moves();
-		std::sort(moves->begin(), moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
-		uint64_t pos_hash = e->zobrist_hash(pos);
-		bool pos_is_transposition = e->contains_z_hash(pos_hash);
+		uint64_t pos_hash = pos->hash(pos);
+		bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
 			delete line;
 			if (!pos_is_transposition) {
-				e->add_hash(pos_hash, DBL_MAX);
+				pos->transposition_table->add(pos_hash, DBL_MAX);
 			}
 			return DBL_MAX;
 		}
@@ -215,7 +219,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			delete moves;
 			delete line;
 			if (!pos_is_transposition) {
-				e->add_hash(pos_hash, 0.00);
+				pos->transposition_table->add(pos_hash, 0.00);
 			}
 			return 0.00;
 		}
@@ -223,19 +227,24 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 		Move* pv_pos = prev_pv->front();
 		prev_pv->pop_front();
 
-		moves->insert(moves->begin(), pv_pos);
+		Move* first = moves->front();
+		moves->front() = pv_pos;
+		moves->push_back(first);
+
+		std::sort(moves->begin() + 1, moves->end(), [pos, e](Move* m_1, Move* m_2) -> bool {return e->compare(pos, m_1, m_2); });
+
 		int i = 0;
 		for (Move* const& move : *moves)
 		{
 			pos->make_move(move);
-			double score;
-			uint64_t move_hash = e->zobrist_hash(pos);
+			double score = 0.0;
+			uint64_t move_hash = pos->hash(pos);
 
 			if (i == 0 && left_most)
 			{
-				if (e->contains_z_hash(move_hash))
+				if (pos->transposition_table->contains_hash(move_hash))
 				{
-					score = e->zobrist_hashmap->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second;
 				}
 				else
 				{
@@ -254,59 +263,60 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			}
 			else if (!move->equals(pv_pos))
 			{
-				if (e->contains_z_hash(move_hash))
+				if (pos->transposition_table->contains_hash(move_hash))
 				{
-					score = e->zobrist_hashmap->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second;
 					// std::cout << "here" << std::endl;
 				}
 				else
 				{
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, e, false);
 				}
-				if (score >= beta)
-				{
-					pos->unmake_move();
-					for (Move* const& move : *moves)
-					{
-						delete move;
-					}
-					for (Move* const& line_move : *line)
-					{
-						delete line_move;
-					}
-					delete line;
-					delete moves;
-					if (!pos_is_transposition) {
-						e->add_hash(pos_hash, beta);
-					}
-					return beta;
-					//  fail hard beta-cutoff
-				}
-				else if (score > alpha)
-				{
-					for (Move* const& pv_move : *PV)
-					{
-						delete pv_move;
-					}
-
-					PV->clear();
-					for (Move* const& line_move : *line)
-					{
-						PV->push_back(line_move->clone());
-					}
-					PV->push_front(move->clone());
-					//std::cout << b->get_last_move() << std::endl;
-					alpha = score; // alpha acts like max in MiniMax
-				}
 			}
+			if (score >= beta)
+			{
+				pos->unmake_move();
+				for (Move* const& move : *moves)
+				{
+					delete move;
+				}
+				for (Move* const& line_move : *line)
+				{
+					delete line_move;
+				}
+				delete line;
+				delete moves;
+				if (!pos_is_transposition) {
+					pos->transposition_table->add(pos_hash, score);
+				}
+				return beta;
+				//  fail hard beta-cutoff
+			}
+			else if (score > alpha)
+			{
+				for (Move* const& pv_move : *PV)
+				{
+					delete pv_move;
+				}
+
+				PV->clear();
+				for (Move* const& line_move : *line)
+				{
+					PV->push_back(line_move->clone());
+				}
+				PV->push_front(move->clone());
+				alpha = score; // alpha acts like max in MiniMax
+			}
+
 			i++;
 			pos->unmake_move();
+			for (Move* const& b : *line)
+			{
+				delete b;
+			}
+			line->clear();
 		}
 		for (Move* const& b : *moves)
-		{
-			delete b;
-		}
-		for (Move* const& b : *line)
 		{
 			delete b;
 		}
@@ -314,23 +324,31 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 		delete moves;
 
 		if (!pos_is_transposition) {
-			e->add_hash(pos_hash, alpha);
+			pos->transposition_table->add(pos_hash, alpha);
 		}
 	}
 
 	return alpha;
 }
-
+/**
+ * @brief performs a quiescence search such that only "quiet" positions are evaluated
+ *
+ * @param pos starting position
+ * @param alpha alpha value for AB pruning
+ * @param beta beta value for AB pruning
+ * @param e evaluator object
+ * @return double evaluation
+ */
 double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 {
 	double stand_pat = e->evaluate(pos);
-	uint64_t pos_hash = e->zobrist_hash(pos);
-	bool pos_is_transposition = e->contains_z_hash(pos_hash);
+	uint64_t pos_hash = pos->hash(pos);
+	bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 
 	if (stand_pat >= beta)
 	{
 		if (!pos_is_transposition) {
-			e->add_hash(pos_hash, beta);
+			pos->transposition_table->add(pos_hash, beta);
 		}
 		return beta;
 	}
@@ -349,7 +367,7 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 
 		double score = e->evaluate(pos);
 		if (!pos_is_transposition) {
-			e->add_hash(pos_hash, score);
+			pos->transposition_table->add(pos_hash, score);
 		}
 		return score;
 	}
@@ -359,11 +377,11 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 		{
 			pos->make_move(move);
 			double score;
-			uint64_t move_hash = e->zobrist_hash(pos);
-			bool is_transposition = e->contains_z_hash(move_hash);
+			uint64_t move_hash = pos->hash(pos);
+			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
 			if (is_transposition)
 			{
-				score = e->zobrist_hashmap->find(move_hash)->second;
+				score = pos->transposition_table->map->find(move_hash)->second;
 			}
 			else
 			{
@@ -378,7 +396,7 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 				}
 				delete moves;
 				if (!is_transposition) {
-					e->add_hash(move_hash, beta);
+					pos->transposition_table->add(move_hash, beta);
 				}
 				return beta; // fail hard beta-cutoff
 			}
@@ -395,7 +413,7 @@ double Search::quiescence(Board* pos, double alpha, double beta, Evaluator* e)
 		delete moves;
 
 		if (!pos_is_transposition) {
-			e->add_hash(pos_hash, alpha);
+			pos->transposition_table->add(pos_hash, alpha);
 		}
 	}
 	return alpha;
@@ -427,7 +445,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		{
 			std::cout << " " << i->to_string() << " ";
 		}
-		std::cout << "nodes " << e->zobrist_hashmap->size();
+		std::cout << "nodes " << pos->transposition_table->map->size();
 		std::cout << std::endl;
 
 		best_move = PV->front()->to_string();
@@ -440,7 +458,7 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		delete prev_PV;
 		prev_PV = PV;
 
-		e->zobrist_hashmap->clear();
+		pos->transposition_table->map->clear();
 	}
 	std::cout << "bestmove " << best_move << std::endl << std::endl;
 	delete e;
@@ -452,12 +470,3 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	delete prev_PV;
 	return res;
 }
-/**
- * @brief performs a quiescence search such that only "quiet" positions are evaluated
- *
- * @param pos starting position
- * @param alpha alpha value for AB pruning
- * @param beta beta value for AB pruning
- * @param e evaluator object
- * @return double evaluation
- */

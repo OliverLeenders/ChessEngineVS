@@ -157,6 +157,7 @@
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
     <ClCompile Include="utility.cpp" />
+    <ClCompile Include="zobrist_hashmap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="board.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="piece.h" />
     <ClInclude Include="search.h" />
     <ClInclude Include="utility.h" />
+    <ClInclude Include="zobrist_hashmap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

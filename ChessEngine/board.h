@@ -19,14 +19,14 @@
 #include <list>
 #include "move.h"
 #include "utility.h"
+#include "zobrist_hashmap.h"
 //#include "evaluator.h"
 
 class Board
 {
 private:
 	/* data */
-	bool* attacked_by_white = new bool[64];
-	bool* attacked_by_black = new bool[64];
+	bool* attacked = new bool[64];
 	unsigned int* pins = new unsigned int[64];
 	bool* checks = new bool[64];
 	unsigned int* check_direction = new unsigned int[2];
@@ -43,24 +43,21 @@ private:
 	void add_pawn_moves(std::vector<Move*>* moves, int i);
 	void promote_with_offset(std::vector<Move*>* moves, int i, int j, unsigned promote_to);
 	void move_en_passant(std::vector<Move*>* moves, int i, int j);
-	void add_diagonal_attack_rays(int i, bool is_white);
-	void add_straight_attack_rays(int i, bool is_white);
+	void add_diagonal_attack_rays(int i);
+	void add_straight_attack_rays(int i);
 	bool en_passant_illegal();
-	static bool compare(Board* b1, Board* b2);
-	static bool is_not_capture(Board* b);
-	static bool contains_both_kings(Board* b);
+
 
 	std::vector<bool*>* stack_castling_rights = new std::vector<bool*>;
 	std::vector<int>* stack_en_passant_target_index = new std::vector<int>;
 	std::vector<unsigned>* stack_captures = new std::vector<unsigned>;
 	std::vector<Move*>* stack_moves = new std::vector<Move*>;
+	std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
 
 public:
 	Board();
 	int white_king_pos = -1;
 	int black_king_pos = -1;
-	int last_move_origin = -1;
-	int last_move_target = -1;
 	Board* prev_pos;
 	// std::vector<Board*>* get_sorted_legal_moves(Evaluator *e);
 	// std::vector<Board*>* get_sorted_legal_captures(Evaluator* e);
@@ -82,6 +79,9 @@ public:
 	std::list<int>* knight_list = new std::list<int>;
 	std::list<int>* pawn_list = new std::list<int>;
 
+	zobrist_hashmap* transposition_table;
+	uint64_t pos_hash;
+
 	Board(std::string fen);
 	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
 	void switch_move();
@@ -91,10 +91,13 @@ public:
 	std::string get_attacked_squares();
 	std::string get_checks();
 	std::string get_pins();
-	std::string get_attacked_by_black();
-	std::string get_attacked_by_white();
+	std::string get_attacked();
 
 	std::string get_castling_rights();
+
+
+	uint64_t hash(Board* b);
+	uint64_t hash_move(Board* b, Move* m);
 
 	std::vector<Move*>* possible_moves();
 	std::vector<Move*>* get_legal_captures();
@@ -102,6 +105,8 @@ public:
 	void compute_other_checks();
 	std::string get_last_move();
 	void compute_attacked_squares();
+	void compute_king_attacked_squares(int pos);
+	void compute_knight_attacked_squares(int pos);
 	void move_with_offset(std::vector<Move*>* moves, int i, int j);
 	Board* clone();
 	bool equals(Board* b);

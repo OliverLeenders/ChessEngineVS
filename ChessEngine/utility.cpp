@@ -14,4 +14,16 @@ void Utility::remove_first_occurance(std::list<int>* l, int i) {
 }
 
 
+uint64_t Utility::random_64_bit_num()
+{
+	uint64_t num = 0;
+	for (int i = 0; i < 64; i++)
+	{
+		num = num * 2 + rand() % 2;
+	}
+	return num;
+}
+
+
+
 Utility::~Utility() {}

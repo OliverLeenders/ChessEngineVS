@@ -39,6 +39,9 @@
     <ClCompile Include="utility.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="zobrist_hashmap.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="move.h">
@@ -60,6 +63,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="utility.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="zobrist_hashmap.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

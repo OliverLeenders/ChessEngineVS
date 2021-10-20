@@ -1,86 +1,9 @@
 #include "evaluator.h"
 #include <iostream>
 
-Evaluator::Evaluator()
-{
-	for (int i = 0; i < 781; i++)
-	{
-		this->zobrist_base_numbers[i] = this->random_64_bit_num();
-	}
-	this->zobrist_hashmap->reserve(10000000);
-	return;
-}
+Evaluator::Evaluator() {}
 
-Evaluator::~Evaluator()
-{
-	delete[] this->zobrist_base_numbers;
-	this->zobrist_hashmap->clear();
-	this->prev_zobrist_hashmap->clear();
-	delete this->prev_zobrist_hashmap;
-	delete this->zobrist_hashmap;
-	return;
-}
-
-uint64_t Evaluator::random_64_bit_num()
-{
-	uint64_t num = 0;
-	for (int i = 0; i < 64; i++)
-	{
-		num = num * 2 + rand() % 2;
-	}
-	return num;
-}
-
-void Evaluator::add_hash(uint64_t hash, double eval)
-{
-	this->zobrist_hashmap->insert(std::make_pair(hash, eval));
-}
-
-bool Evaluator::contains_z_hash(uint64_t hash)
-{
-	return !(this->zobrist_hashmap->find(hash) == this->zobrist_hashmap->end());
-}
-
-uint64_t Evaluator::zobrist_hash(Board* b)
-{
-	uint64_t hash = 0;
-	
-	std::list<int>::iterator itr;
-	hash = hash xor this->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos]->get_type()];
-	hash = hash xor this->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos]->get_type()];
-	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
-		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
-		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
-		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
-		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
-		hash = hash xor this->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	int i = 64;
-	for (int j = 0; j < 4; j++)
-	{
-		if (b->castling_rights[j])
-		{
-			hash = hash xor this->zobrist_base_numbers[i + j];
-		}
-	}
-	if (b->en_passant_target_index > 0)
-	{
-		hash = hash xor this->zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
-	}
-	if (!b->white_to_move)
-	{
-		hash = hash xor this->zobrist_base_numbers[i + 12];
-	}
-	return hash;
-}
+Evaluator::~Evaluator() {}
 
 int Evaluator::mirror_vertical(int i) {
 	return  8 * (7 - (i / 8)) + (i % 8);
@@ -137,7 +60,6 @@ double Evaluator::evaluate(Board* b)
 		}
 	}
 
-	
 	if (b->white_to_move)
 	{
 		return e;

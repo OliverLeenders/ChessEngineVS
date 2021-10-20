@@ -108,8 +108,7 @@ void uci_console() {
 				std::cout << board->pos_as_str() << std::endl;
 			}
 			else if ((*split)[0] == "attacks") {
-				std::cout << board->get_attacked_by_white() << std::endl;
-				std::cout << board->get_attacked_by_black() << std::endl;
+				std::cout << board->get_attacked() << std::endl;
 			}
 			else if ((*split)[0] == "pins") {
 				std::cout << board->get_pins() << std::endl;
