@@ -21,7 +21,7 @@ class Evaluator
 {
 public:
 	Evaluator();
-	double evaluate(Board* b);
+	static double evaluate(Board* b);
 	static bool compare(Board* pos, Move* m_1, Move* m_2);
 	static int mirror_vertical(int i);
 	static double score_move(Board* pos, Move *m);

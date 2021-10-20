@@ -12,51 +12,51 @@ int Evaluator::mirror_vertical(int i) {
 double Evaluator::evaluate(Board* b)
 {
 	double e = 0.0;
-	e += 3.5 + this->KingTable[b->white_king_pos] / 100.0;
-	e -= 3.5 + this->KingTable[this->mirror_vertical(b->black_king_pos)] / 100.0;
+	e += 3.5 + KingTable[b->white_king_pos] / 100.0;
+	e -= 3.5 + KingTable[mirror_vertical(b->black_king_pos)] / 100.0;
 
 	std::list<int>::iterator itr;
 	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
 		if (b->position[*itr]->is_white()) {
-			e += 9.0 + this->QueenTable[*itr] / 100.0;
+			e += 9.0 + QueenTable[*itr] / 100.0;
 		}
 		else {
-			e -= 9.0 + this->QueenTable[this->mirror_vertical(*itr)] / 100.0;
+			e -= 9.0 + QueenTable[mirror_vertical(*itr)] / 100.0;
 		}
 	}
 	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
 		if (b->position[*itr]->is_white()) {
-			e += 5.0 + this->RookTable[*itr] / 100.0;
+			e += 5.0 + RookTable[*itr] / 100.0;
 		}
 		else {
-			e -= 5.0 + this->RookTable[this->mirror_vertical(*itr)] / 100.0;
+			e -= 5.0 + RookTable[mirror_vertical(*itr)] / 100.0;
 		}
 	}
 
 	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
 		if (b->position[*itr]->is_white()) {
-			e += 3.2 + this->BishopTable[*itr] / 100.0;
+			e += 3.2 + BishopTable[*itr] / 100.0;
 		}
 		else {
-			e -= 3.2 + this->BishopTable[this->mirror_vertical(*itr)] / 100.0;
+			e -= 3.2 + BishopTable[mirror_vertical(*itr)] / 100.0;
 		}
 	}
 
 	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
 		if (b->position[*itr]->is_white()) {
-			e += 3.0 + this->KnightTable[*itr] / 100.0;
+			e += 3.0 + KnightTable[*itr] / 100.0;
 		}
 		else {
-			e -= 3.0 + this->KnightTable[this->mirror_vertical(*itr)] / 100.0;
+			e -= 3.0 + KnightTable[mirror_vertical(*itr)] / 100.0;
 		}
 	}
 
 	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
 		if (b->position[*itr]->is_white()) {
-			e += 1.0 + this->PawnTable[*itr] / 100.0;
+			e += 1.0 + PawnTable[*itr] / 100.0;
 		}
 		else {
-			e -= 1.0 + this->PawnTable[this->mirror_vertical(*itr)] / 100.0;
+			e -= 1.0 + PawnTable[mirror_vertical(*itr)] / 100.0;
 		}
 	}
 

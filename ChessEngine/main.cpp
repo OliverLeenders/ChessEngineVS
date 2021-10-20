@@ -126,10 +126,9 @@ void uci_console() {
 				std::cout << "triggered breakpoint" << std::endl;
 			}
 			else if ((*split)[0] == "eval") {
-				Evaluator* e = new Evaluator();
-				double d = e->evaluate(board);
-				std::cout << d << std::endl;
-				delete e;
+				
+				std::cout << Evaluator::evaluate(board) << std::endl;
+
 			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
