@@ -10,8 +10,7 @@
 #endif
 */
 
-#ifndef Move_H
-#define Move_H
+#pragma once
 
 #include <string>
 #include <iostream>
@@ -38,9 +37,3 @@ private:
 	int num_str_to_int(char num);
 	int char_str_to_int(char c);
 };
-
-class move
-{
-};
-
-#endif

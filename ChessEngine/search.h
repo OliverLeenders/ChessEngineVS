@@ -29,6 +29,8 @@ public:
 	double evaluate(Board* pos, unsigned int depth);
 	double quiescence(Board* pos, double alpha, double beta);
 	double evaluate_iterative_deepening(Board* pos, unsigned int depth);
+	std::list<Move*>* gather_PV(Board* pos);
+	void gather_PV_rec(Board* pos, std::list<Move*>* PV);
 	~Search();
 };
 

@@ -60,13 +60,13 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			pos->transposition_table->add(pos_hash, DBL_MAX);
+			pos->transposition_table->add(pos_hash, hash_entry(DBL_MAX, depth_left + 1));
 			return DBL_MAX;
 		}
 		else if (moves->size() == 0)
 		{
 			delete moves;
-			pos->transposition_table->add(pos_hash, 0.00);
+			pos->transposition_table->add(pos_hash, hash_entry(0.00, depth_left + 1));
 			return 0.00;
 		}
 		std::list<Move*>* line = new std::list<Move*>;
@@ -84,7 +84,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 				if (is_transposition)
 				{
 					// std::cout << "here" << std::endl;
-					score = pos->transposition_table->map->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second.score;
 				}
 				else
 				{
@@ -106,7 +106,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 			{
 				if (is_transposition)
 				{
-					score = pos->transposition_table->map->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second.score;
 				}
 				else
 				{
@@ -126,7 +126,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 					delete line;
 					delete moves;
 					if (!pos_is_transposition) {
-						pos->transposition_table->add(pos_hash, score);
+						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
 					}
 					return beta;
 					//  fail hard beta-cutoff
@@ -145,6 +145,9 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 					}
 					PV->push_front(move->clone());
 					//std::cout << b->get_last_move() << std::endl;
+					if (!pos_is_transposition) {
+						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
+					}
 					alpha = score; // alpha acts like max in MiniMax
 				}
 			}
@@ -163,9 +166,7 @@ double Search::alpha_beta(Board* pos, double alpha, double beta, unsigned int de
 		delete moves;
 		delete line;
 
-		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, alpha);
-		}
+
 	}
 	return alpha;
 }
@@ -204,7 +205,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			delete moves;
 			delete line;
 			if (!pos_is_transposition) {
-				pos->transposition_table->add(pos_hash, DBL_MAX);
+				pos->transposition_table->add(pos_hash, hash_entry(DBL_MAX, depth_left));
 			}
 			return DBL_MAX;
 		}
@@ -213,13 +214,14 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			delete moves;
 			delete line;
 			if (!pos_is_transposition) {
-				pos->transposition_table->add(pos_hash, 0.00);
+				pos->transposition_table->add(pos_hash, hash_entry(0.00, depth_left));
 			}
 			return 0.00;
 		}
 
 		Move* pv_pos = prev_pv->front();
 		prev_pv->pop_front();
+
 
 		Move* first = moves->front();
 		moves->front() = pv_pos;
@@ -238,7 +240,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			{
 				if (pos->transposition_table->contains_hash(move_hash))
 				{
-					score = pos->transposition_table->map->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second.score;
 				}
 				else
 				{
@@ -259,7 +261,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 			{
 				if (pos->transposition_table->contains_hash(move_hash))
 				{
-					score = pos->transposition_table->map->find(move_hash)->second;
+					score = pos->transposition_table->map->find(move_hash)->second.score;
 					// std::cout << "here" << std::endl;
 				}
 				else
@@ -281,7 +283,7 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 					delete line;
 					delete moves;
 					if (!pos_is_transposition) {
-						pos->transposition_table->add(pos_hash, score);
+						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
 					}
 					return beta;
 					//  fail hard beta-cutoff
@@ -299,6 +301,9 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 						PV->push_back(line_move->clone());
 					}
 					PV->push_front(move->clone());
+					if (!pos_is_transposition) {
+						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
+					}
 					alpha = score; // alpha acts like max in MiniMax
 				}
 			}
@@ -318,9 +323,6 @@ double Search::alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigne
 		delete line;
 		delete moves;
 
-		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, alpha);
-		}
 	}
 
 	return alpha;
@@ -343,7 +345,7 @@ double Search::quiescence(Board* pos, double alpha, double beta)
 	if (stand_pat >= beta)
 	{
 		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, beta);
+			pos->transposition_table->add(pos_hash, hash_entry(stand_pat, 0));
 		}
 		return beta;
 	}
@@ -362,7 +364,7 @@ double Search::quiescence(Board* pos, double alpha, double beta)
 
 		double score = Evaluator::evaluate(pos);
 		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, score);
+			pos->transposition_table->add(pos_hash, hash_entry(score, 0));
 		}
 		return score;
 	}
@@ -376,7 +378,7 @@ double Search::quiescence(Board* pos, double alpha, double beta)
 			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
 			if (is_transposition)
 			{
-				score = pos->transposition_table->map->find(move_hash)->second;
+				score = pos->transposition_table->map->find(move_hash)->second.score;
 			}
 			else
 			{
@@ -391,12 +393,15 @@ double Search::quiescence(Board* pos, double alpha, double beta)
 				}
 				delete moves;
 				if (!is_transposition) {
-					pos->transposition_table->add(move_hash, beta);
+					pos->transposition_table->add(move_hash, hash_entry(score, 0));
 				}
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
 			{
+				if (!pos_is_transposition) {
+					pos->transposition_table->add(pos_hash, hash_entry(score, 0));
+				}
 				alpha = score; // alpha acts like max in MiniMax
 			}
 			pos->unmake_move();
@@ -407,9 +412,6 @@ double Search::quiescence(Board* pos, double alpha, double beta)
 		}
 		delete moves;
 
-		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, alpha);
-		}
 	}
 	return alpha;
 }
@@ -435,9 +437,9 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 
 		std::cout << "info score " << std::fixed << (int)(res * 100 + 0.5);
 		std::cout << " pv ";
-		for (Move* const& i : *PV)
+		for (Move* const& move : *PV)
 		{
-			std::cout << " " << i->to_string() << " ";
+			std::cout << " " << move->to_string() << " ";
 		}
 		std::cout << "nodes " << pos->transposition_table->map->size();
 		std::cout << std::endl;
@@ -462,4 +464,51 @@ double Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	prev_PV->clear();
 	delete prev_PV;
 	return res;
+}
+
+
+std::list<Move*>* Search::gather_PV(Board* pos) {
+	std::list<Move*>* PV = new std::list<Move*>;
+	gather_PV_rec(pos, PV);
+	return PV;
+}
+
+void Search::gather_PV_rec(Board* pos, std::list<Move*>* PV)
+{
+	std::vector<Move*>* moves = pos->possible_moves();
+	Move* best_move = nullptr;
+	double best_score = -DBL_MAX;
+	for (Move* const& m : *moves) {
+		pos->make_move(m);
+		uint64_t hash = pos->hash(pos);
+		if (pos->transposition_table->contains_hash(hash)) {
+			double move_score = (*pos->transposition_table->map->find(hash)).second.score;
+			if (move_score > best_score) {
+				best_move = m;
+			}
+		}
+		pos->unmake_move();
+	}
+	for (Move* const& m : *moves) {
+		if (best_move != nullptr) {
+			if (!m->equals(best_move)) {
+				delete m;
+			}
+		}
+	}
+	if (best_move == nullptr) {
+
+		moves->clear();
+		delete moves;
+		return;
+	}
+
+	PV->push_back(best_move);
+	pos->make_move(best_move->clone());
+	gather_PV_rec(pos, PV);
+	pos->unmake_move();
+
+	moves->clear();
+	delete moves;
+
 }

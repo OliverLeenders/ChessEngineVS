@@ -6,17 +6,33 @@ zobrist_hashmap::zobrist_hashmap()
 	{
 		this->zobrist_base_numbers[i] = util.random_64_bit_num();
 	}
-	this->map->reserve(10000000); 
+	this->map->reserve(1000000); 
 }
 
-void zobrist_hashmap::add(uint64_t hash, double eval)
+void zobrist_hashmap::add(uint64_t hash, hash_entry entry)
 {
-	this->map->insert(std::make_pair(hash, eval));
+	if (this->map->bucket_size(this->map->bucket(hash)) == 0) {
+		this->map->insert(std::make_pair(hash, entry));
+	}
+	else {
+		std::pair<uint64_t, hash_entry> other_entry = *this->map->begin(this->map->bucket(hash));
+		if (other_entry.second.depth_left > entry.depth_left) {
+			this->map->erase(other_entry.first);
+			this->map->insert(std::make_pair(hash, entry));
+		}
+		else if (other_entry.second.times_hit < 1) {
+			this->map->erase(other_entry.first);
+			this->map->insert(std::make_pair(hash, entry));
+		}
+	}
+
 }
 
 bool zobrist_hashmap::contains_hash(uint64_t hash)
 {
-	return !(this->map->find(hash) == this->map->end());
+	bool res = !(this->map->find(hash) == this->map->end());
+	(*this->map->find(hash)).second.times_hit += 1;
+	return res;
 }
 
 
