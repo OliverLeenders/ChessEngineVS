@@ -5,10 +5,13 @@ Utility::Utility() {}
 void Utility::remove_first_occurance(std::list<int>* l, int i) {
 	std::list<int>::iterator itr;
 	bool not_removed = true;
-	for (itr = l->begin(); itr != l->end() && not_removed; itr++) {
+	for (itr = l->begin(); itr != l->end() && not_removed; ) {
 		if (*itr == i) {
-			l->erase(itr);
+			itr  = l->erase(itr);
 			not_removed = true;
+		}
+		else {
+			itr++;
 		}
 	}
 }

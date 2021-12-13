@@ -102,7 +102,17 @@ Move::~Move() {};
  * 
  * \return string representation
  */
+bool Move::is_nullmove()
+{
+	if (this->origin == -1 && this->target == -1) {
+		return true;
+	}
+	return false;
+}
 std::string Move::to_string() {
+	if (this->is_nullmove()) {
+		return "0000";
+	}
 	std::string str = "";
 	str += this->index_to_string(this->origin);
 	str += this->index_to_string(this->target);

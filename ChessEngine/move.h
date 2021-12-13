@@ -26,6 +26,7 @@ public:
 	bool is_capture;
 	bool is_promotion;
 	unsigned promotion_type;
+	bool is_nullmove();
 	std::string to_string();
 	Move* clone();
 	bool equals(Move* m);

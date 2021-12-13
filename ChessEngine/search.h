@@ -22,15 +22,17 @@
 class Search
 {
 private:
-	double alpha_beta(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most);
-	double alpha_beta_prev_PV(Board* pos, double alpha, double beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most, std::list<Move*>* prev_pv);
+	int alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most);
+	int alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most, std::list<Move*>* prev_pv);
 public:
 	Search();
-	double evaluate(Board* pos, unsigned int depth);
-	double quiescence(Board* pos, double alpha, double beta);
-	double evaluate_iterative_deepening(Board* pos, unsigned int depth);
+	int node_count = 0;
+	int evaluate(Board* pos, unsigned int depth);
+	int quiescence(Board* pos, int alpha, int beta);
+	int evaluate_iterative_deepening(Board* pos, unsigned int depth);
 	std::list<Move*>* gather_PV(Board* pos);
 	void gather_PV_rec(Board* pos, std::list<Move*>* PV);
+	std::vector<std::vector<Move>> killer_moves;
 	~Search();
 };
 

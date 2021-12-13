@@ -21,19 +21,21 @@ class Evaluator
 {
 public:
 	Evaluator();
-	static double evaluate(Board* b);
+	static int evaluate(Board* b);
 	static bool compare(Board* pos, Move* m_1, Move* m_2);
 	static int mirror_vertical(int i);
-	static double score_move(Board* pos, Move *m);
+	static int score_quiet_move(Board* pos, Move *m);
+	static int score_move(Board* pos, Move* m);
+	static int score_capture(Board* pos, Move* m);
 	~Evaluator();
 private:
-	static short PawnTable[64];
-	static short KnightTable[64];
-	static short BishopTable[64];
-	static short RookTable[64];
-	static short QueenTable[64];
-	static short KingTable[64];
-	static short KingTableEndGame[64];
+	static int PawnTable[64];
+	static int KnightTable[64];
+	static int BishopTable[64];
+	static int RookTable[64];
+	static int QueenTable[64];
+	static int KingTable[64];
+	static int KingTableEndGame[64];
 
 };
 

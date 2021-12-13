@@ -31,7 +31,9 @@ void zobrist_hashmap::add(uint64_t hash, hash_entry entry)
 bool zobrist_hashmap::contains_hash(uint64_t hash)
 {
 	bool res = !(this->map->find(hash) == this->map->end());
-	(*this->map->find(hash)).second.times_hit += 1;
+	if (res) {
+		(*this->map->find(hash)).second.times_hit += 1;
+	};
 	return res;
 }
 

@@ -42,7 +42,7 @@ public:
     bool is_empty();
     bool is_black();
     Piece* clone();
-    double value();
+    int value();
     bool is_opponent(Piece* other);
     bool is_team_member(Piece* other);
     ~Piece();

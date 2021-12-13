@@ -89,35 +89,35 @@ bool Piece::is_team_member(Piece* other)
     return ((other->is_black() && this->is_black()) || (other->is_white() && this->is_white()));
 }
 
-double Piece::value() {
+int Piece::value() {
     switch (this->type)
     {
     case 0:
         return 0;
     case 1:
-        return 1000;
+        return 100000;
     case 2:
-        return 1000;
+        return 100000;
     case 3:
-        return 9.5;
+        return 950;
     case 4:
-        return 9.5;
+        return 950;
     case 5:
-        return 5.0;
+        return 500;
     case 6:
-        return 5.0;
+        return 500;
     case 7:
-        return 3.5;
+        return 350;
     case 8:
-        return 3.5;
+        return 350;
     case 9:
-        return 3.2;
+        return 320;
     case 10:
-        return 3.2;
+        return 320;
     case 11:
-        return 1.0;
+        return 100;
     case 12:
-        return 1.0;
+        return 100;
     default:
         break;
     }
