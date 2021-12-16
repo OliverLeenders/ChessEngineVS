@@ -52,7 +52,7 @@ private:
 	std::vector<int>* stack_en_passant_target_index = new std::vector<int>;
 	std::vector<unsigned>* stack_captures = new std::vector<unsigned>;
 	std::vector<Move*>* stack_moves = new std::vector<Move*>;
-	std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
+	//std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
 
 public:
 	Board();
@@ -79,9 +79,6 @@ public:
 	std::list<int>* knight_list = new std::list<int>;
 	std::list<int>* pawn_list = new std::list<int>;
 
-	zobrist_hashmap* transposition_table;
-	uint64_t pos_hash;
-
 	Board(std::string fen);
 	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
 	void switch_move();
@@ -94,10 +91,6 @@ public:
 	std::string get_attacked();
 
 	std::string get_castling_rights();
-
-
-	uint64_t hash(Board* b);
-	uint64_t hash_move(Board* b, Move* m);
 
 	std::vector<Move*>* possible_moves();
 	std::vector<Move*>* get_legal_captures();

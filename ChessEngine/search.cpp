@@ -31,15 +31,104 @@ Search::Search()
 int Search::evaluate(Board* pos, unsigned int depth)
 {
 	std::list<Move*>* PV = new std::list<Move*>;
+	for (unsigned int j = 0; j < depth - 1; j++) {
+		std::vector<Move*>* init_v = new std::vector<Move*>();
+		init_v->push_back(new Move(-1, -1, false, false, 0));
+		init_v->push_back(new Move(-1, -1, false, false, 0));
+		killer_moves->push_back(init_v);
+	}
 	int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, true);
-	std::cout << PV->size() << std::endl;
-	for (Move* const& i : *PV)
+	std::cout << "info score cp " << std::fixed << res;
+	std::cout << " pv ";
+	for (Move* const& move : *PV)
 	{
-		std::cout << i->to_string() + " ";
+		std::cout << " " << move->to_string() << " ";
+	}
+	std::cout << "nodes " << this->node_count;
+	std::cout << std::endl;
+
+	std::string best_move = PV->front()->to_string();
+	std::cout << "bestmove " << best_move;
+	std::cout << std::endl;
+	for (Move* const& move : *PV) {
+		delete move;
+	}
+	for (std::vector<Move*>* const& v : *killer_moves) {
+		for (Move* const& move : *v) {
+			delete move;
+		}
+		delete v;
+	}
+	killer_moves->clear();
+	delete PV;
+	return res;
+}
+
+
+/**
+ * @brief runs an evalutation with a certain depth
+ *
+ * @param pos position to search from
+ * @param depth depth
+ * @return int evaluation
+ */
+int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
+{
+	std::list<Move*>* prev_PV = new std::list<Move*>;
+	int res = 0;
+	std::string best_move = "";
+
+	for (unsigned int i = 1; i <= depth; i++)
+	{
+		this->node_count = 0;
+		// init killer moves
+		for (unsigned int j = 0; j < i - 1; j++) {
+			std::vector<Move*>* init_v = new std::vector<Move*>();
+			init_v->push_back(new Move(-1, -1, false, false, 0));
+			init_v->push_back(new Move(-1, -1, false, false, 0));
+			killer_moves->push_back(init_v);
+		}
+		std::list<Move*>* PV = new std::list<Move*>;
+		for (unsigned i = 0; i < depth; i++) {
+			std::vector<Move> init;
+			init.push_back(Move(-1, -1, false, false, 0));
+			init.push_back(Move(-1, -1, false, false, 0));
+		}
+		res = this->alpha_beta_prev_PV(pos, -INT_MAX, INT_MAX, i, PV, true, prev_PV);
+
+		std::cout << "info score cp " << std::fixed << res;
+		std::cout << " pv ";
+		for (Move* const& move : *PV)
+		{
+			std::cout << " " << move->to_string() << " ";
+		}
+		std::cout << "nodes " << this->node_count;
+		std::cout << std::endl;
+
+		best_move = PV->front()->to_string();
+
+		for (Move* const& i : *prev_PV)
+		{
+			delete i;
+		}
+		prev_PV->clear();
+		delete prev_PV;
+		prev_PV = PV;
+		for (std::vector<Move*>* const& v : *killer_moves) {
+			for (Move* const& move : *v) {
+				delete move;
+			}
+			delete v;
+		}
+		killer_moves->clear();
+	}
+	std::cout << "bestmove " << best_move << std::endl << std::endl;
+	for (Move* const& i : *prev_PV)
+	{
 		delete i;
 	}
-	std::cout << std::endl;
-	delete PV;
+	prev_PV->clear();
+	delete prev_PV;
 	return res;
 }
 
@@ -54,20 +143,22 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 	{
 		// initializing PV line
 		// getting legal moves
-		uint64_t pos_hash = pos->hash(pos);
-		bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 		std::vector<Move*>* moves = pos->possible_moves();
-		std::sort(moves->begin(), moves->end(), [pos](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2); });
+		if (depth_left < killer_moves->size()) {
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
+		}
+		else {
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
+		}
+
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			pos->transposition_table->add(pos_hash, hash_entry(INT_MAX, depth_left + 1));
 			return INT_MAX;
 		}
 		else if (moves->size() == 0)
 		{
 			delete moves;
-			pos->transposition_table->add(pos_hash, hash_entry(0, depth_left + 1));
 			return 0;
 		}
 		std::list<Move*>* line = new std::list<Move*>();
@@ -77,24 +168,10 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		{
 			pos->make_move(move);
 			int score;
-			uint64_t move_hash = pos->hash(pos);
-			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
 
 			if (i == 0 && left_most)
 			{
-				if (is_transposition)
-				{
-					// std::cout << "here" << std::endl;
-					score = pos->transposition_table->map->find(move_hash)->second.score;
-					if (score > alpha && score < beta) {
-						this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, true);
-					}
-				}
-				else
-				{
-					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, true);
-				}
-
+				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, true);
 				for (Move* const& pv_move : *PV)
 				{
 					delete pv_move;
@@ -109,19 +186,19 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			}
 			else
 			{
-				if (is_transposition)
-				{
-					score = pos->transposition_table->map->find(move_hash)->second.score;
-					if (score > alpha && score < beta) {
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
-					}
-				}
-				else
-				{
-					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
-				}
+				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
 				if (score >= beta)
 				{
+					if ((!move->is_capture) && depth_left < killer_moves->size()) {
+						if (swap_first && (!killer_moves->at(depth_left)->at(0)->equals(move))) {
+							delete killer_moves->at(depth_left)->at(0);
+							killer_moves->at(depth_left)->at(0) = move->clone();
+						}
+						else if ((!swap_first) && (!killer_moves->at(depth_left)->at(1)->equals(move))) {
+							delete killer_moves->at(depth_left)->at(1);
+							killer_moves->at(depth_left)->at(1) = move->clone();
+						}
+					}
 					pos->unmake_move();
 					for (Move* const& imove : *moves)
 					{
@@ -133,29 +210,11 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					}
 					delete line;
 					delete moves;
-					if (!pos_is_transposition) {
-						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
-					}
 					return beta;
 					//  fail hard beta-cutoff
 				}
 				else if (score > alpha)
 				{
-					/*
-					if (line->size() != depth_left - 1) {
-						std::cout << pos->pos_as_str();
-
-						std::cout << move->to_string() << " ";
-						std::cout << "line size " << line->size() << std::endl;
-						std::cout << "line: ";
-						for (Move* const& lm : *line) {
-							std::cout << lm->to_string() << " ";
-						}
-						std::cout << "depth_left" << depth_left;
-						std::cout << "is transposition: " << is_transposition << std::endl;
-						std::cout << std::endl;
-					}
-					*/
 					for (Move* const& pv_move : *PV)
 					{
 						delete pv_move;
@@ -167,9 +226,6 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					}
 					PV->push_front(move->clone());
 					//std::cout << b->get_last_move() << std::endl;
-					if (!pos_is_transposition) {
-						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
-					}
 					alpha = score; // alpha acts like max in MiniMax
 				}
 			}
@@ -187,8 +243,6 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		}
 		delete moves;
 		delete line;
-
-
 	}
 	return alpha;
 }
@@ -226,18 +280,12 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 		// generate possible moves
 		std::vector<Move*>* moves = pos->possible_moves();
 		// generate a hash for the position
-		uint64_t pos_hash = pos->hash(pos);
-		// check whether current position is in the transposition table
-		bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 
 		// if is checkmate
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
 			delete line;
-			if (!pos_is_transposition) {
-				pos->transposition_table->add(pos_hash, hash_entry(INT_MAX, depth_left));
-			}
 			return INT_MAX;
 		}
 		// if is stalemate
@@ -245,9 +293,6 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 		{
 			delete moves;
 			delete line;
-			if (!pos_is_transposition) {
-				pos->transposition_table->add(pos_hash, hash_entry(0, depth_left));
-			}
 			return 0;
 		}
 
@@ -261,7 +306,12 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 		moves->push_back(first);
 
 		// perform move ordering 
-		std::sort(moves->begin() + 1, moves->end(), [pos](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2); });
+		if (depth_left < killer_moves->size()) {
+			std::stable_sort(moves->begin() + 1, moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
+		}
+		else {
+			std::stable_sort(moves->begin() + 1, moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
+		}
 
 		// index for checking the leftmost child move
 		int i = 0;
@@ -272,32 +322,14 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 			// make move on board
 			pos->make_move(move);
 
-			// generate zobrist hash
-			uint64_t move_hash = pos->hash(pos);
-			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
-
 			// initialize score
 			int score = 0;
 
 			// if is left-most child
 			if (i == 0 && left_most)
 			{
-				// if is transposition
-				if (is_transposition)
-				{
-					// read score from TT
-					score = pos->transposition_table->map->find(move_hash)->second.score;
-
-					// if score is best move continue searching
-					if (score > alpha && score < beta) {
-						this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, true, prev_pv);
-					}
-				}
-				else
-				{
-					// search children
-					score = -this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, true, prev_pv);
-				}
+				// search children
+				score = -this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, true, prev_pv);
 
 				// left most path along search tree should be initial PV
 				// clear current PV
@@ -317,25 +349,23 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 			// if move is not left most, i.e. not PV pos 
 			else
 			{
-				// if is transposition
-				if (is_transposition)
-				{
-					// read score from TT
-					score = pos->transposition_table->map->find(move_hash)->second.score;
-					// if score yields new best move, still search move (for PV)
-					if (score > alpha && score < beta) {
-						score = -this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, false, prev_pv);
-					}
-				}
-				else
-				{
-					// search ...
-					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
-				}
+				// search ...
+				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
 
 				// beta-cutoff branch
 				if (score >= beta)
 				{
+					// update killer moves
+					if ((!move->is_capture) && depth_left < killer_moves->size()) {
+						if (swap_first && (!killer_moves->at(depth_left)->at(0)->equals(move))) {
+							delete killer_moves->at(depth_left)->at(0);
+							killer_moves->at(depth_left)->at(0) = move->clone();
+						}
+						else if ((!swap_first) && (!killer_moves->at(depth_left)->at(1)->equals(move))) {
+							delete killer_moves->at(depth_left)->at(1);
+							killer_moves->at(depth_left)->at(1) = move->clone();
+						}
+					}
 					// undo move on board
 					pos->unmake_move();
 					// free move list
@@ -351,28 +381,12 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 					delete line;
 					delete moves;
 					// if is new position
-					if (!pos_is_transposition) {
-						// add TT entry
-						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
-					}
 					return beta;
 					//  fail hard beta-cutoff
 				}
 				// alpha branch
 				else if (score > alpha)
 				{
-					/*
-					if (line->size() != depth_left - 1) {
-						std::cout << pos->pos_as_str();
-						std::cout << move->to_string() << std::endl;
-						std::cout << "line size " << line->size() << std::endl;
-						std::cout << "line: ";
-						for (Move* const& lm : *line) {
-							std::cout << lm->to_string() << " ";
-						}
-						std::cout << std::endl;
-
-					}*/
 
 					// clear current PV
 					for (Move* const& pv_move : *PV)
@@ -389,10 +403,6 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 					// add current move as first move
 					PV->push_front(move->clone());
 					// if is new position
-					if (!pos_is_transposition) {
-						// add TT entry
-						pos->transposition_table->add(pos_hash, hash_entry(score, depth_left));
-					}
 					alpha = score; // alpha acts like max in MiniMax
 				}
 			}
@@ -434,16 +444,9 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 	this->node_count++;
 	// compute standin pat -- preliminary eval  
 	int stand_pat = Evaluator::evaluate(pos);
-	// compute position hasj
-	uint64_t pos_hash = pos->hash(pos);
-	// check if position has been fpund before
-	bool pos_is_transposition = pos->transposition_table->contains_hash(pos_hash);
 	// stand_pat beta cutoff5ä
 	if (stand_pat >= beta)
 	{
-		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, hash_entry(stand_pat, 0));
-		}
 		return beta;
 	}
 	else if (stand_pat > alpha)
@@ -452,7 +455,7 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 	}
 
 	std::vector<Move*>* moves = pos->get_legal_captures();
-	std::sort(moves->begin(), moves->end(), [pos](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2); });
+	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
@@ -460,9 +463,6 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 		delete moves;
 
 		int score = Evaluator::evaluate(pos);
-		if (!pos_is_transposition) {
-			pos->transposition_table->add(pos_hash, hash_entry(score, 0));
-		}
 		return score;
 	}
 	else
@@ -471,16 +471,7 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 		{
 			pos->make_move(move);
 			int score;
-			uint64_t move_hash = pos->hash(pos);
-			bool is_transposition = pos->transposition_table->contains_hash(move_hash);
-			if (is_transposition)
-			{
-				score = pos->transposition_table->map->find(move_hash)->second.score;
-			}
-			else
-			{
-				score = -this->quiescence(pos, -beta, -alpha);
-			}
+			score = -this->quiescence(pos, -beta, -alpha);
 			if (score >= beta)
 			{
 				pos->unmake_move();
@@ -489,16 +480,10 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 					delete b;
 				}
 				delete moves;
-				if (!is_transposition) {
-					pos->transposition_table->add(move_hash, hash_entry(score, 0));
-				}
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
 			{
-				if (!pos_is_transposition) {
-					pos->transposition_table->add(pos_hash, hash_entry(score, 0));
-				}
 				alpha = score; // alpha acts like max in MiniMax
 			}
 			pos->unmake_move();
@@ -508,109 +493,6 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 			delete b;
 		}
 		delete moves;
-
 	}
 	return alpha;
-}
-
-/**
- * @brief runs an evalutation with a certain depth
- *
- * @param pos position to search from
- * @param depth depth
- * @return int evaluation
- */
-int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
-{
-	std::list<Move*>* prev_PV = new std::list<Move*>;
-	int res = 0;
-	std::string best_move = "";
-
-	for (unsigned int i = 1; i <= depth; i++)
-	{
-		this->node_count = 0;
-		std::list<Move*>* PV = new std::list<Move*>;
-		for (unsigned i = 0; i < depth; i++) {
-			std::vector<Move> init;
-			init.push_back(Move(-1, -1, false, false, 0));
-			init.push_back(Move(-1, -1, false, false, 0));
-		}
-		res = this->alpha_beta_prev_PV(pos, -INT_MAX, INT_MAX, i, PV, true, prev_PV);
-
-		std::cout << "info score " << std::fixed << res;
-		std::cout << " pv ";
-		for (Move* const& move : *PV)
-		{
-			std::cout << " " << move->to_string() << " ";
-		}
-		std::cout << "nodes " << this->node_count;
-		std::cout << std::endl;
-
-		best_move = PV->front()->to_string();
-
-		for (Move* const& i : *prev_PV)
-		{
-			delete i;
-		}
-		prev_PV->clear();
-		delete prev_PV;
-		prev_PV = PV;
-
-		pos->transposition_table->map->clear();
-	}
-	std::cout << "bestmove " << best_move << std::endl << std::endl;
-	for (Move* const& i : *prev_PV)
-	{
-		delete i;
-	}
-	prev_PV->clear();
-	delete prev_PV;
-	return res;
-}
-
-
-std::list<Move*>* Search::gather_PV(Board* pos) {
-	std::list<Move*>* PV = new std::list<Move*>;
-	gather_PV_rec(pos, PV);
-	return PV;
-}
-
-void Search::gather_PV_rec(Board* pos, std::list<Move*>* PV)
-{
-	std::vector<Move*>* moves = pos->possible_moves();
-	Move* best_move = nullptr;
-	int best_score = -INT_MAX;
-	for (Move* const& m : *moves) {
-		pos->make_move(m);
-		uint64_t hash = pos->hash(pos);
-		if (pos->transposition_table->contains_hash(hash)) {
-			int move_score = (*pos->transposition_table->map->find(hash)).second.score;
-			if (move_score > best_score) {
-				best_move = m;
-			}
-		}
-		pos->unmake_move();
-	}
-	for (Move* const& m : *moves) {
-		if (best_move != nullptr) {
-			if (!m->equals(best_move)) {
-				delete m;
-			}
-		}
-	}
-	if (best_move == nullptr) {
-
-		moves->clear();
-		delete moves;
-		return;
-	}
-
-	PV->push_back(best_move);
-	pos->make_move(best_move->clone());
-	gather_PV_rec(pos, PV);
-	pos->unmake_move();
-
-	moves->clear();
-	delete moves;
-
 }

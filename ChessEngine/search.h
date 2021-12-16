@@ -30,9 +30,8 @@ public:
 	int evaluate(Board* pos, unsigned int depth);
 	int quiescence(Board* pos, int alpha, int beta);
 	int evaluate_iterative_deepening(Board* pos, unsigned int depth);
-	std::list<Move*>* gather_PV(Board* pos);
-	void gather_PV_rec(Board* pos, std::list<Move*>* PV);
-	std::vector<std::vector<Move>> killer_moves;
+	std::vector<std::vector<Move*>*>* killer_moves = new std::vector<std::vector<Move*>*>();
+	bool swap_first = true;
 	~Search();
 };
 

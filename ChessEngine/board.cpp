@@ -22,8 +22,6 @@ Board::Board()
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
-	transposition_table = new zobrist_hashmap;
-	this->pos_hash = this->hash(this);
 }
 /**
  * @brief Construct a new Board:: Board object from a given position
@@ -50,8 +48,6 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
-	transposition_table = new zobrist_hashmap;
-	this->pos_hash = this->hash(this);
 }
 
 /**
@@ -321,8 +317,6 @@ rest:
 		this->pins[i] = 0;
 		this->checks[i] = false;
 	}
-	transposition_table = new zobrist_hashmap;
-	this->pos_hash = this->hash(this);
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
@@ -358,8 +352,6 @@ Board::~Board()
 	delete[] this->checks;
 	delete[] this->position;
 
-	delete this->transposition_table;
-
 	delete this->queen_list;
 	delete this->rook_list;
 	delete this->bishop_list;
@@ -381,54 +373,12 @@ Board::~Board()
 	this->stack_castling_rights->clear();
 	delete this->stack_castling_rights;
 
-	this->stack_hashes->clear();
-	delete this->stack_hashes;
-
 	this->stack_en_passant_target_index;
 	delete this->stack_en_passant_target_index;
 }
 
 
-uint64_t Board::hash(Board* b)
-{
-	uint64_t hash = 0;
 
-	std::list<int>::iterator itr;
-	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos]->get_type()];
-	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos]->get_type()];
-	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
-	}
-	int i = 64;
-	for (int j = 0; j < 4; j++)
-	{
-		if (b->castling_rights[j])
-		{
-			hash = hash xor this->transposition_table->zobrist_base_numbers[i + j];
-		}
-	}
-	if (b->en_passant_target_index > 0)
-	{
-		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
-	}
-	if (!b->white_to_move)
-	{
-		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 12];
-	}
-	return hash;
-}
 
 
 

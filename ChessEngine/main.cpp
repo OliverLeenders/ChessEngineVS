@@ -54,14 +54,14 @@ void perft(Board* b, int depth) {
 	Evaluator* e = new Evaluator();
 	//moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
-	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2); });
+	//std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2); });
 	for (Move* const& move : *moves) {
-		int score = Evaluator::score_move(b, move);
+		//int score = Evaluator::score_move(b, move);
 		b->make_move(move);
 		Movegen* gen = new Movegen(b);
 		int num_moves = gen->generate_moves(depth - 1);
 		total += num_moves;
-		std::cout << move->to_string() << ": " << num_moves << " -- score: " << score << std::endl;
+		std::cout << move->to_string() << ": " << num_moves << std::endl;
 		delete gen;
 		b->unmake_move();
 	}
@@ -84,6 +84,12 @@ void perft(Board* b, int depth) {
 void search(Board* b, int depth) {
 	Search* s = new Search();
 	s->evaluate_iterative_deepening(b, depth);
+	delete s;
+}
+
+void ni_search(Board* b, int depth) {
+	Search* s = new Search();
+	s->evaluate(b, depth);
 	delete s;
 }
 
@@ -121,6 +127,14 @@ void uci_console() {
 			else if ((*split)[0] == "castling") {
 				std::cout << board->get_castling_rights() << std::endl;
 			}
+			else if ((*split)[0] == "uci") {
+				std::cout << "id name Leandor" << std::endl;
+				std::cout << "id author Oliver Leenders" << std::endl;
+				std::cout << "uciok" << std::endl;
+			}
+			else if ((*split)[0] == "isready") {
+				std::cout << "readyok" << std::endl;
+			}
 			else if ((*split)[0] == "unmake") {
 				board->unmake_move();
 			}
@@ -137,6 +151,17 @@ void uci_console() {
 					if ((*split)[1] == "startpos") {
 						delete board;
 						board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+						if (split->size() > 3) {
+							if ((*split)[2] == "moves") {
+								for (int i = 3; i < split->size(); i++) {
+									Move* m = new Move((*split)[i], board->white_to_move, false);
+									if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+										m->is_capture = true;
+									}
+									board->make_move(m);
+								}
+							}
+						}
 					}
 					else if ((*split)[1] == "kiwipete") {
 						delete board;
@@ -172,6 +197,16 @@ void uci_console() {
 							search(board, depth);
 						}
 					}
+					else if ((*split)[1] == "nidepth") {
+						if (split->size() == 3) {
+							int depth = std::stoi((*split)[2]);
+							ni_search(board, depth);
+						}
+					}
+					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
+						search(board, 5);
+					}
+
 				}
 				else if ((*split)[0] == "move") {
 					Move* m = new Move((*split)[1], board->white_to_move, false);
