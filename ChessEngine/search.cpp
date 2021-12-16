@@ -91,19 +91,24 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		std::list<Move*>* PV = new std::list<Move*>;
 		for (unsigned i = 0; i < depth; i++) {
 			std::vector<Move> init;
-			init.push_back(Move(-1, -1, false, false, 0));
+			init.push_back(Move(-1, -1, false, false, 0)); 
 			init.push_back(Move(-1, -1, false, false, 0));
 		}
 		res = this->alpha_beta_prev_PV(pos, -INT_MAX, INT_MAX, i, PV, true, prev_PV);
-
-		std::cout << "info score cp " << std::fixed << res;
+		if (std::abs(res) < EVAL_SCORE_CUTOFF) {
+			std::cout << "info score cp " << res;
+		}
+		else {
+			std::cout << "info score mate " << Utility::sgn(res) * (MATE_IN_ZERO - std::abs(res));
+		}
+		std::cout << " depth " << i;
 		std::cout << " pv ";
 		for (Move* const& move : *PV)
 		{
 			std::cout << " " << move->to_string() << " ";
 		}
 		std::cout << "nodes " << this->node_count;
-		std::cout << std::endl;
+		std::cout << std::endl; 
 
 		best_move = PV->front()->to_string();
 
@@ -154,7 +159,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			return INT_MAX;
+			return -MATE_IN_ZERO;
 		}
 		else if (moves->size() == 0)
 		{
@@ -172,6 +177,12 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			if (i == 0 && left_most)
 			{
 				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, true);
+				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
+					// is mate score
+					if (score > 0) {
+						score -= Utility::sgn(score);
+					}
+				}
 				for (Move* const& pv_move : *PV)
 				{
 					delete pv_move;
@@ -187,6 +198,12 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			else
 			{
 				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
+				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
+					// is mate score
+					if (score > 0) {
+						score -= Utility::sgn(score);
+					}
+				}
 				if (score >= beta)
 				{
 					if ((!move->is_capture) && depth_left < killer_moves->size()) {
@@ -286,7 +303,7 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 		{
 			delete moves;
 			delete line;
-			return INT_MAX;
+			return -MATE_IN_ZERO;
 		}
 		// if is stalemate
 		else if (moves->size() == 0)
@@ -330,7 +347,12 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 			{
 				// search children
 				score = -this->alpha_beta_prev_PV(pos, -beta, -alpha, depth_left - 1, line, true, prev_pv);
-
+				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
+					// is mate score
+					if (score > 0) {
+						score -= Utility::sgn(score);
+					}
+				}
 				// left most path along search tree should be initial PV
 				// clear current PV
 				for (Move* const& pv_move : *PV)
@@ -351,7 +373,12 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 			{
 				// search ...
 				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, false);
-
+				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
+					// is mate score
+					if (score > 0) {
+						score -= Utility::sgn(score);
+					}
+				}
 				// beta-cutoff branch
 				if (score >= beta)
 				{

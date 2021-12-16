@@ -236,7 +236,9 @@ void split_string(std::vector<std::string>* v, std::string s) {
 			tmp.push_back(s[i]);
 		}
 		else {
-			v->push_back(tmp);
+			if (tmp != "") {
+				v->push_back(tmp);
+			}
 			tmp = "";
 		}
 	}

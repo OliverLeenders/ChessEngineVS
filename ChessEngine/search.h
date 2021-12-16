@@ -14,10 +14,15 @@
 #define Search_H
 
 #include <algorithm>
+#include <cmath>
 
 #include "board.h"
 #include "piece.h"
 #include "evaluator.h"
+#include "utility.h"
+
+#define EVAL_SCORE_CUTOFF 900000
+#define MATE_IN_ZERO 1000000
 
 class Search
 {
