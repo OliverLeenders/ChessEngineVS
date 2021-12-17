@@ -179,12 +179,26 @@ void uci_console() {
 						if ((*split)[1] == "fen") {
 							delete board;
 							std::string fen = "";
-							for (int i = 2; i < split->size(); i++) {
+							for (int i = 2; i < 8; i++) {
 								fen += (*split)[i] + " ";
 							}
 							// std::cout << fen << std::endl;
 							board = new Board(fen);
 							std::cout << board->pos_as_str() << std::endl << std::endl;
+							if (split->size() > 8) {
+								if ((*split)[8] == "moves") {
+									for (int i = 9; i < split->size(); i++) {
+										Move* m = new Move((*split)[i], i % 2, false, false);
+										if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+											m->is_capture = true;
+										}
+										if (board->position[m->origin]->get_type() >= 11) {
+											m->is_pawn_push = true;
+										}
+										board->make_move(m);
+									}
+								}
+							}
 						}
 					}
 				}

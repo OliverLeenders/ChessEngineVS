@@ -22,8 +22,8 @@
 #include "evaluator.h"
 #include "utility.h"
 
-#define EVAL_SCORE_CUTOFF 900000
-#define MATE_IN_ZERO 1000000
+constexpr int EVAL_SCORE_CUTOFF = 900000;
+constexpr int MATE_IN_ZERO = 1000000;
 
 class Search
 {

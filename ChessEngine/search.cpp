@@ -196,7 +196,9 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, i == 0 && left_most);
 				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
 					// is mate score
-					score -= Utility::sgn(score);
+					if (score > 0) {
+						score--;
+					}
 				}
 
 			}
@@ -374,7 +376,9 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, i == 0 && left_most);
 				if (std::abs(score) > EVAL_SCORE_CUTOFF) {
 					// is mate score
-					score -= Utility::sgn(score);
+					if (score > 0) {
+						score--;
+					}
 				}
 
 			}
