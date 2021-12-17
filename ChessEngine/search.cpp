@@ -184,7 +184,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
 					repetition_counter++;
 				}
-				if (repetition_counter == 1) {
+				if (repetition_counter == 2) {
 					draw_score = true;
 					score = 0;
 					goto next;
