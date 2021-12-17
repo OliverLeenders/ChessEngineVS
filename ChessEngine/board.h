@@ -30,8 +30,6 @@ private:
 	unsigned int* pins = new unsigned int[64];
 	bool* checks = new bool[64];
 	unsigned int* check_direction = new unsigned int[2];
-
-	std::string last_move = "";
 	/* functions */
 	std::string get_coord_str_from_index(int i);
 	std::string create_move_str(int from, int to);
@@ -51,11 +49,14 @@ private:
 	std::vector<bool*>* stack_castling_rights = new std::vector<bool*>;
 	std::vector<int>* stack_en_passant_target_index = new std::vector<int>;
 	std::vector<unsigned>* stack_captures = new std::vector<unsigned>;
-	std::vector<Move*>* stack_moves = new std::vector<Move*>;
-	//std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
+	
 
 public:
 	Board();
+	Board(std::string fen);
+	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
+	
+	
 	int white_king_pos = -1;
 	int black_king_pos = -1;
 	Board* prev_pos;
@@ -64,6 +65,8 @@ public:
 	int en_passant_target_index = -1;
 
 	unsigned int num_checks = 0;
+	
+	bool white_to_move;
 	/*
 	* Kingside white,
 	* Queenside white,
@@ -79,31 +82,40 @@ public:
 	std::list<int>* knight_list = new std::list<int>;
 	std::list<int>* pawn_list = new std::list<int>;
 
-	Board(std::string fen);
-	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
+	
 	void switch_move();
-	void set_last_move(std::string set_move);
+	
 	int set_piece(unsigned type, int pos);
+	
 	std::string pos_as_str();
 	std::string get_attacked_squares();
 	std::string get_checks();
 	std::string get_pins();
 	std::string get_attacked();
-
 	std::string get_castling_rights();
 
 	std::vector<Move*>* possible_moves();
 	std::vector<Move*>* get_legal_captures();
+
+	std::vector<Move*>* stack_moves = new std::vector<Move*>;
+	std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
+
+	zobrist_hashmap* transposition_table;
+
+	uint64_t hash(Board* b);
+	uint64_t pos_hash;
+
 	void compute_pin_rays();
 	void compute_other_checks();
-	std::string get_last_move();
+	
 	void compute_attacked_squares();
 	void compute_king_attacked_squares(int pos);
 	void compute_knight_attacked_squares(int pos);
+	
 	void move_with_offset(std::vector<Move*>* moves, int i, int j);
-	Board* clone();
+	
 	bool equals(Board* b);
-	bool white_to_move;
+	
 
 	void make_move(Move* m);
 	void unmake_move();

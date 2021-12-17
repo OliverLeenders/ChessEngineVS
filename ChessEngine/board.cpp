@@ -22,6 +22,8 @@ Board::Board()
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
+	transposition_table = new zobrist_hashmap(1000000);
+	this->pos_hash = this->hash(this);
 }
 /**
  * @brief Construct a new Board:: Board object from a given position
@@ -48,6 +50,8 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
+	transposition_table = new zobrist_hashmap(1000000);
+	this->pos_hash = this->hash(this);
 }
 
 /**
@@ -317,6 +321,8 @@ rest:
 		this->pins[i] = 0;
 		this->checks[i] = false;
 	}
+	transposition_table = new zobrist_hashmap(1000000);
+	this->pos_hash = this->hash(this);
 	compute_attacked_squares();
 	compute_pin_rays();
 	compute_other_checks();
@@ -352,6 +358,8 @@ Board::~Board()
 	delete[] this->checks;
 	delete[] this->position;
 
+	delete this->transposition_table;
+
 	delete this->queen_list;
 	delete this->rook_list;
 	delete this->bishop_list;
@@ -373,12 +381,54 @@ Board::~Board()
 	this->stack_castling_rights->clear();
 	delete this->stack_castling_rights;
 
+	this->stack_hashes->clear();
+	delete this->stack_hashes;
+
 	this->stack_en_passant_target_index;
 	delete this->stack_en_passant_target_index;
 }
 
 
+uint64_t Board::hash(Board* b)
+{
+	uint64_t hash = 0;
 
+	std::list<int>::iterator itr;
+	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos]->get_type()];
+	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos]->get_type()];
+	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
+		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr]->get_type()];
+	}
+	int i = 64;
+	for (int j = 0; j < 4; j++)
+	{
+		if (b->castling_rights[j])
+		{
+			hash = hash xor this->transposition_table->zobrist_base_numbers[i + j];
+		}
+	}
+	if (b->en_passant_target_index > 0)
+	{
+		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
+	}
+	if (!b->white_to_move)
+	{
+		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 12];
+	}
+	return hash;
+}
 
 
 
@@ -690,7 +740,6 @@ std::vector<Move*>* Board::possible_moves()
 			this->add_pawn_moves(moves, *itr);
 		}
 	}
-
 	return moves;
 }
 
@@ -2071,7 +2120,7 @@ void Board::move_en_passant(std::vector<Move*>* moves, int i, int j)
 		return;
 	}
 
-	Move* move = new Move(i, j, true, false, 0);
+	Move* move = new Move(i, j, true, false, true, 0);
 	moves->push_back(move);
 }
 
@@ -2422,7 +2471,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		{
 			if ((!this->attacked[4]) && (!this->attacked[5]) && (!this->attacked[6]) && this->position[5]->is_empty() && this->position[6]->is_empty())
 			{
-				Move* move = new Move(4, 6, false, false, 0);
+				Move* move = new Move(4, 6, false, false, false, 0);
 				moves->push_back(move);
 			}
 		}
@@ -2430,7 +2479,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		{
 			if ((!this->attacked[4]) && (!this->attacked[3]) && (!this->attacked[2]) && this->position[3]->is_empty() && this->position[2]->is_empty() && this->position[1]->is_empty())
 			{
-				Move* move = new Move(4, 2, false, false, 0);
+				Move* move = new Move(4, 2, false, false, false, 0);
 				moves->push_back(move);
 			}
 		}
@@ -2441,7 +2490,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		{
 			if ((!this->attacked[60]) && (!this->attacked[61]) && (!this->attacked[62]) && this->position[61]->is_empty() && this->position[62]->is_empty())
 			{
-				Move* move = new Move(60, 62, false, false, 0);
+				Move* move = new Move(60, 62, false, false, false, 0);
 				moves->push_back(move);
 			}
 		}
@@ -2449,7 +2498,7 @@ void Board::add_king_moves(std::vector<Move*>* moves, int i)
 		{
 			if ((!this->attacked[60]) && (!this->attacked[59]) && (!this->attacked[58]) && this->position[59]->is_empty() && this->position[58]->is_empty() && this->position[57]->is_empty())
 			{
-				Move* move = new Move(60, 58, false, false, 0);
+				Move* move = new Move(60, 58, false, false, false, 0);
 				moves->push_back(move);
 			}
 		}
@@ -2471,24 +2520,20 @@ void Board::move_with_offset(std::vector<Move*>* moves, int i, int j)
 	else if (this->position[i]->get_type() == 2 && this->attacked[j]) {
 		return;
 	}
-	if (this->position[j]->is_empty()) {
-		Move* move = new Move(i, j, false, false, 0);
-		moves->push_back(move);
-	}
-	else {
-		Move* move = new Move(i, j, true, false, 0);
-		moves->push_back(move);
-	}
+	bool is_pawn_move = this->position[i]->get_type() >= 11;
+	bool is_capture = !this->position[j]->is_empty();
+	Move* move = new Move(i, j, is_capture, false, is_pawn_move, 0);
+	moves->push_back(move);
 }
 
 void Board::promote_with_offset(std::vector<Move*>* moves, int i, int j, unsigned promote_to)
 {
 	if (this->position[j]->is_empty()) {
-		Move* move = new Move(i, j, false, true, promote_to);
+		Move* move = new Move(i, j, false, true, true, promote_to);
 		moves->push_back(move);
 	}
 	else {
-		Move* move = new Move(i, j, true, true, promote_to);
+		Move* move = new Move(i, j, true, true, true, promote_to);
 		moves->push_back(move);
 	}
 }
@@ -2500,44 +2545,6 @@ void Board::promote_with_offset(std::vector<Move*>* moves, int i, int j, unsigne
 void Board::switch_move()
 {
 	this->white_to_move = !(this->white_to_move);
-}
-
-/**
- * @brief stores the move with which the position was reached as a string
- *
- * @param set_move
- */
-void Board::set_last_move(std::string set_move)
-{
-	this->last_move = set_move;
-}
-/**
- * @brief generates a deep copy of the board
- *
- * @return Board*
- */
-Board* Board::clone()
-{
-	Piece** clone_position = new Piece * [64];
-	for (int i = 0; i < 64; i++)
-	{
-		clone_position[i] = this->position[i]->clone();
-	}
-
-	bool* copy_castling_rights = new bool[4];
-	for (int i = 0; i < 4; i++)
-	{
-		copy_castling_rights[i] = this->castling_rights[i];
-	}
-
-	Board* b = new Board(clone_position, this->white_to_move, copy_castling_rights);
-
-	std::string buffer = this->get_last_move();
-	b->set_last_move(buffer);
-	b->white_king_pos = this->white_king_pos;
-	b->black_king_pos = this->black_king_pos;
-	b->en_passant_target_index = -1;
-	return b;
 }
 
 std::string Board::pos_as_str()
@@ -2592,11 +2599,6 @@ std::string Board::get_coord_str_from_index(int i)
 	str += c;
 	str += std::to_string((i / 8 + 1));
 	return str;
-}
-
-std::string Board::get_last_move()
-{
-	return this->last_move;
 }
 
 std::string Board::create_move_str(int from, int to)
@@ -2791,6 +2793,7 @@ void Board::make_move(Move* m) {
 	// managing stack
 
 	this->stack_moves->push_back(m);
+	this->stack_hashes->push_back(this->pos_hash);
 
 	// copying the castling rights
 	bool* copy_castling_rights = new bool[4];
@@ -2847,7 +2850,7 @@ void Board::make_move(Move* m) {
 		}
 		this->castling_rights[0] = false;
 		this->castling_rights[1] = false;
-
+		this->pos_hash = this->hash(this);
 		return;
 	}
 	// if is black castling move
@@ -2880,6 +2883,7 @@ void Board::make_move(Move* m) {
 		this->castling_rights[2] = false;
 		this->castling_rights[3] = false;
 
+		this->pos_hash = this->hash(this);
 		return;
 	}
 	// performing en passant
@@ -2995,6 +2999,7 @@ void Board::make_move(Move* m) {
 			this->knight_list->push_back(target);
 		}
 	}
+	this->pos_hash = this->hash(this);
 }
 
 void Board::unmake_move() {
@@ -3003,6 +3008,7 @@ void Board::unmake_move() {
 
 	// move unwrapping
 	Move* m = this->stack_moves->back();
+
 	int target = m->target;
 	int origin = m->origin;
 	bool is_promotion = m->is_promotion;
@@ -3011,6 +3017,9 @@ void Board::unmake_move() {
 	//delete m;
 
 	this->stack_moves->pop_back();
+
+	this->pos_hash = this->stack_hashes->back();
+	stack_hashes->pop_back();
 
 	bool* castling_rights_old = this->stack_castling_rights->back();
 	this->stack_castling_rights->pop_back();

@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "board.h"
 #include "piece.h"
