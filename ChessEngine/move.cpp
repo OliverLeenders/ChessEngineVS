@@ -9,11 +9,12 @@
  * \param set_is_promotion whether move is a promotion
  * \param set_promotion_type type to promote to (0 if no promotion)
  */
-Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, unsigned set_promotion_type) {
+Move::Move(int set_origin, int set_target, bool set_is_capture, bool set_is_promotion, bool set_is_pawn_push,unsigned set_promotion_type) {
 	this->origin = set_origin;
 	this->target = set_target;
 	this->is_capture = set_is_capture;
 	this->is_promotion = set_is_promotion;
+	this->is_pawn_push = set_is_pawn_push;
 	this->promotion_type = set_promotion_type;
 }
 
@@ -46,12 +47,12 @@ unsigned Move::char_to_type(char t) {
  * \param side_to_move 
  * \param set_is_capture
  */
-Move::Move(std::string move_str, bool side_to_move, bool set_is_capture) {
+Move::Move(std::string move_str, bool side_to_move, bool set_is_capture, bool set_is_pawn_push) {
 	if (move_str.length() == 5) {
 		this->is_promotion = true;
 		this->promotion_type = this->char_to_type(move_str.at(4));
 		this->is_capture = set_is_capture;
-
+		this->is_pawn_push = set_is_pawn_push;
 		if (!side_to_move && this->is_promotion) {
 			this->promotion_type++;
 		}
@@ -60,6 +61,7 @@ Move::Move(std::string move_str, bool side_to_move, bool set_is_capture) {
 		this->is_promotion = false;
 		this->promotion_type = 0;
 		this->is_capture = set_is_capture;
+		this->is_pawn_push = set_is_pawn_push;
 	}
 	this->origin = char_str_to_int(move_str.at(0)) + 8 * num_str_to_int(move_str.at(1));
 	this->target = char_str_to_int(move_str.at(2)) + 8 * num_str_to_int(move_str.at(3));
@@ -168,7 +170,7 @@ std::string Move::type_to_lowercase_letter(unsigned type) {
 }
 
 Move* Move::clone() {
-	return new Move(this->origin, this->target, this->is_capture, this->is_promotion, this->promotion_type);
+	return new Move(this->origin, this->target, this->is_capture, this->is_promotion, this->is_pawn_push, this->promotion_type);
 }
 
 bool Move::equals(Move* m) {
