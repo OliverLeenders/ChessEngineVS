@@ -28,12 +28,13 @@ constexpr int MATE_IN_ZERO = 1000000;
 class Search
 {
 private:
-	int alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most);
+	int alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV);
 	int alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most, std::list<Move*>* prev_pv);
 public:
 	Search();
 	int node_count = 0;
 	int evaluate(Board* pos, unsigned int depth);
+	int search_depth = 0;
 	int quiescence(Board* pos, int alpha, int beta);
 	int evaluate_iterative_deepening(Board* pos, unsigned int depth);
 	std::vector<std::vector<Move*>*>* killer_moves = new std::vector<std::vector<Move*>*>();

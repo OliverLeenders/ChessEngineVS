@@ -143,9 +143,7 @@ void uci_console() {
 				std::cout << "triggered breakpoint" << std::endl;
 			}
 			else if ((*split)[0] == "eval") {
-				
 				std::cout << Evaluator::evaluate(board) << std::endl;
-
 			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
@@ -212,17 +210,17 @@ void uci_console() {
 					else if ((*split)[1] == "depth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							search(board, depth);
+							ni_search(board, depth);
 						}
 					}
 					else if ((*split)[1] == "nidepth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							ni_search(board, depth);
+							search(board, depth);
 						}
 					}
 					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
-						search(board, 5);
+						ni_search(board, 5);
 					}
 
 				}

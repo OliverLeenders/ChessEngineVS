@@ -29,11 +29,19 @@ public:
 	static int score_capture(Board* pos, Move* m);
 	~Evaluator();
 private:
+	void init_tables();
+	int mg_table[12][64];
+	int eg_table[12][64];
 	static int PawnTable[64];
+	static int PawnTableEndGame[64];
 	static int KnightTable[64];
+	static int KnightTableEndGame[64];
 	static int BishopTable[64];
+	static int BishopTableEndgame[64];
 	static int RookTable[64];
+	static int RookTableEndgame[64];
 	static int QueenTable[64];
+	static int QueenTableEndGame[64];
 	static int KingTable[64];
 	static int KingTableEndGame[64];
 
