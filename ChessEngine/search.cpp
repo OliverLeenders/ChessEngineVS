@@ -151,6 +151,13 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 
 	if (depth_left == 0)
 	{
+		pos->compute_pin_rays();
+		pos->compute_other_checks();
+		if (pos->num_checks != 0) {
+			this->search_depth++;
+			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV);
+			this->search_depth--;
+		}
 		return this->quiescence(pos, alpha, beta);
 	}
 	else
@@ -297,7 +304,6 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
 	else
 	{
 		this->node_count++;
-
 		// allocate PV line of subtree
 		std::list<Move*>* line = new std::list<Move*>;
 		// generate possible moves

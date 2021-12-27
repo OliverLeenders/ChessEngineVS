@@ -86,7 +86,7 @@ int Evaluator::evaluate(Board* b)
 
 		case 3:
 			mg_eval += mg_value[type] + QueenTable[mirror_vertical(i)];
-			eg_eval -= eg_value[type] + QueenTableEndGame[mirror_vertical(i)];
+			eg_eval += eg_value[type] + QueenTableEndGame[mirror_vertical(i)];
 			break;
 		case 4:
 			mg_eval -= mg_value[type] + QueenTable[i];
@@ -104,7 +104,7 @@ int Evaluator::evaluate(Board* b)
 			// bishop
 		case 7:
 			mg_eval += mg_value[type] + BishopTable[mirror_vertical(i)];
-			eg_eval -= eg_value[type] + BishopTableEndGame[mirror_vertical(i)];
+			eg_eval += eg_value[type] + BishopTableEndGame[mirror_vertical(i)];
 			break;
 		case 8:
 			mg_eval -= mg_value[type] + BishopTable[i];
@@ -113,7 +113,7 @@ int Evaluator::evaluate(Board* b)
 			// knight
 		case 9:
 			mg_eval += mg_value[type] + KnightTable[mirror_vertical(i)];
-			eg_eval -= eg_value[type] + KnightTableEndGame[mirror_vertical(i)];
+			eg_eval += eg_value[type] + KnightTableEndGame[mirror_vertical(i)];
 			break;
 		case 10:
 			mg_eval -= mg_value[type] + KnightTable[i];
