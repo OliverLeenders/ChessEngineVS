@@ -5,10 +5,11 @@ Moved from ChessEngine repo which was compiled using gcc for linux, to new repo 
 ## Features
 * Mailbox (single 64 square array) board representation. 
 * Alpha-beta-search with quiescence search using iterative deepening. 
-* Zobrist hashing. 
+* Zobrist hashing for repetition detection. 
 * Piece lists. 
-* Modified simple evaluation function. 
+* Pesto's evaluation function. 
 
 ## Roadmap
 * uci console (already partially implemented)
+* Zobrist hashing for transposition table
 * Zobrist hashing speedup in make move
