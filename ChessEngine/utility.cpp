@@ -27,6 +27,27 @@ uint64_t Utility::random_64_bit_num()
 	return num;
 }
 
-
+/**
+*Utility function to split a string into a vector.
+*
+* \param v vector of strings
+* \param s string to split
+*/
+void Utility::split_string(std::vector<std::string>*v, std::string s) {
+	std::string tmp = "";
+	for (int i = 0; i < s.length(); i++) {
+		if (s[i] != ' ') {
+			tmp.push_back(s[i]);
+		}
+		else {
+			if (tmp != "") {
+				v->push_back(tmp);
+			}
+			tmp = "";
+		}
+	}
+	v->push_back(tmp);
+}
 
 Utility::~Utility() {}
+

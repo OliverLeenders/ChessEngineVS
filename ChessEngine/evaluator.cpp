@@ -1,12 +1,53 @@
 #include "evaluator.h"
 #include <iostream>
 
-Evaluator::Evaluator() {}
+int Evaluator::mg_table[12][64] = { 0 };
+int Evaluator::eg_table[12][64] = { 0 };
+
+Evaluator::Evaluator() {
+	//init_tables();
+}
 
 Evaluator::~Evaluator() {}
 
 int Evaluator::mirror_vertical(int i) {
 	return  8 * (7 - (i / 8)) + (i % 8);
+}
+
+void Evaluator::init_tables() {
+	// kings 
+	for (int i = 0; i < 64; i++) {
+		mg_table[0][i] = KingTable[mirror_vertical(i)];
+		eg_table[0][i] = KingTableEndGame[mirror_vertical(i)];
+		mg_table[1][i] = KingTable[i];
+		eg_table[1][i] = KingTableEndGame[i];
+		mg_table[2][i] = QueenTable[mirror_vertical(i)];
+		eg_table[2][i] = QueenTableEndGame[mirror_vertical(i)];
+		mg_table[3][i] = QueenTable[i];
+		eg_table[3][i] = QueenTableEndGame[i];
+		mg_table[4][i] = RookTable[mirror_vertical(i)];
+		eg_table[4][i] = RookTableEndGame[mirror_vertical(i)];
+		mg_table[5][i] = RookTable[i];
+		eg_table[5][i] = RookTableEndGame[i];
+		mg_table[6][i] = BishopTable[mirror_vertical(i)];
+		eg_table[6][i] = BishopTableEndGame[mirror_vertical(i)];
+		mg_table[7][i] = BishopTable[i];
+		eg_table[7][i] = BishopTableEndGame[i];
+		mg_table[8][i] = KnightTable[mirror_vertical(i)];
+		eg_table[8][i] = KnightTableEndGame[mirror_vertical(i)];
+		mg_table[9][i] = KnightTable[i];
+		eg_table[9][i] = KnightTableEndGame[i];
+		mg_table[10][i] = PawnTable[mirror_vertical(i)];
+		eg_table[10][i] = PawnTableEndGame[mirror_vertical(i)];
+		mg_table[11][i] = PawnTable[i];
+		eg_table[11][i] = PawnTableEndGame[i];
+	}
+	for (int i = 0; i < 8; i++) {
+		for (int j = 0; j < 8; j++) {
+			std::cout << eg_table[10][8 * i + j] << ", ";
+		}
+		std::cout << "\n";
+	}
 }
 
 int Evaluator::evaluate(Board* b)
@@ -20,121 +61,82 @@ int Evaluator::evaluate(Board* b)
 		}
 	}
 
-
-	int gamephaseInc[12] = { 0,0,1,1,1,1,2,2,4,4,0,0 };
-	/*
-	int mg_value[6] = { 82, 337, 365, 477, 1025,  0};
-	int eg_value[6] = { 94, 281, 297, 512,  936,  0};
-	*/
-	int mg_value[13] = { 0, 0, 0, 1025, 1025, 477, 477, 365, 365, 337, 337, 82, 82 };
-	int eg_value[13] = { 0, 0, 0, 936, 936, 512, 512, 297, 297, 281, 281, 94, 94 };
-
 	int mg_eval = 0;
 	int eg_eval = 0;
-	/*
-	std::list<int>::iterator itr;
-	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
-		if (b->position[*itr]->is_white()) {
-			e += 900 + QueenTable[*itr];
-		}
-		else {
-			e -= 900 + QueenTable[mirror_vertical(*itr)];
-		}
-	}
-	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
-		if (b->position[*itr]->is_white()) {
-			e += 500 + RookTable[*itr];
-		}
-		else {
-			e -= 500 + RookTable[mirror_vertical(*itr)];
-		}
-	}
-
-	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
-		if (b->position[*itr]->is_white()) {
-			e += 320 + BishopTable[*itr];
-		}
-		else {
-			e -= 320 + BishopTable[mirror_vertical(*itr)];
-		}
-	}
-
-	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
-		if (b->position[*itr]->is_white()) {
-			e += 300 + KnightTable[*itr];
-		}
-		else {
-			e -= 300 + KnightTable[mirror_vertical(*itr)];
-		}
-	}
-
-	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
-		if (b->position[*itr]->is_white()) {
-			e += 100 + PawnTable[*itr];
-		}
-		else {
-			e -= 100 + PawnTable[mirror_vertical(*itr)];
-		}
-	}*/
 
 	for (int i = 0; i < 64; i++) {
 		Piece* curr = b->position[i];
 		unsigned type = curr->get_type();
 		switch (type)
 		{
-		case 0: 
+		case 0:
 			break;
-		// king
-		case 1: 
+			// king
+		case 1:
 			mg_eval += mg_value[type] + KingTable[mirror_vertical(i)];
+			eg_eval += eg_value[type] + KingTableEndGame[mirror_vertical(i)];
 			//std::cout << KingTable[mirror_vertical(i)] << "\n";
 			break;
-		case 2: 
+		case 2:
 			mg_eval -= mg_value[type] + KingTable[i];
+			eg_eval -= eg_value[type] + KingTableEndGame[i];
 			//std::cout << KingTable[i] << "\n";
 			break;
-		// queen
-		
+			// queen
+
 		case 3:
 			mg_eval += mg_value[type] + QueenTable[mirror_vertical(i)];
+			eg_eval -= eg_value[type] + QueenTableEndGame[mirror_vertical(i)];
 			break;
 		case 4:
 			mg_eval -= mg_value[type] + QueenTable[i];
+			eg_eval -= eg_value[type] + QueenTableEndGame[i];
 			break;
-		// rook
+			// rook
 		case 5:
 			mg_eval += mg_value[type] + RookTable[mirror_vertical(i)];
+			eg_eval += eg_value[type] + RookTableEndGame[mirror_vertical(i)];
 			break;
 		case 6:
 			mg_eval -= mg_value[type] + RookTable[i];
+			eg_eval -= eg_value[type] + RookTableEndGame[i];
 			break;
-		// bishop
+			// bishop
 		case 7:
 			mg_eval += mg_value[type] + BishopTable[mirror_vertical(i)];
+			eg_eval -= eg_value[type] + BishopTableEndGame[mirror_vertical(i)];
 			break;
 		case 8:
 			mg_eval -= mg_value[type] + BishopTable[i];
+			eg_eval -= eg_value[type] + BishopTableEndGame[i];
 			break;
-		// knight
+			// knight
 		case 9:
 			mg_eval += mg_value[type] + KnightTable[mirror_vertical(i)];
+			eg_eval -= eg_value[type] + KnightTableEndGame[mirror_vertical(i)];
 			break;
 		case 10:
 			mg_eval -= mg_value[type] + KnightTable[i];
+			eg_eval -= eg_value[type] + KnightTableEndGame[i];
 			break;
-		// pawn
+			// pawn
 		case 11:
 			mg_eval += mg_value[type] + PawnTable[mirror_vertical(i)];
+			eg_eval += eg_value[type] + PawnTableEndGame[mirror_vertical(i)];
 			break;
 		case 12:
 			mg_eval -= mg_value[type] + PawnTable[i];
+			eg_eval -= eg_value[type] + PawnTableEndGame[i];
 			break;
 		default:
 			break;
 		}
 	}
 
-	e = mg_eval;
+	int game_phase = 4 * b->queen_list->size() + 2 * b->rook_list->size() + b->bishop_list->size() + b->knight_list->size();
+	int mg_phase = std::min(24, game_phase);
+	int eg_phase = 24 - game_phase;
+	e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
 
 	if (b->white_to_move)
 	{
@@ -162,22 +164,23 @@ bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, std::vector<Move*>* ki
 int Evaluator::score_quiet_move(Board* pos, Move* m, std::vector<Move*>* killer_moves_at_depth) {
 	int origin = m->origin;
 	int target = m->target;
-
-	if (!pos->position[origin]->is_black()) {
+	if (pos->position[origin]->is_white()) {
 		origin = mirror_vertical(origin);
 		target = mirror_vertical(target);
 	}
 	int offset = 0;
 	if (killer_moves_at_depth != nullptr) {
 		if (m->equals(killer_moves_at_depth->at(0)) || m->equals(killer_moves_at_depth->at(1))) {
-			offset += 1000;
+			offset += KILLER_MOVE_SCORE;
 		}
 	}
-	//std::cout << "origin " << origin << ", target" << target <<", piece type " << pos->position[origin]->get_type() << ", ";
-	switch (pos->position[origin]->get_type())
+	unsigned type = pos->position[origin]->get_type();
+	switch (type)
 	{
 	case 1:
-		return KingTable[target] - KingTable[origin] + offset;
+	{
+		return  KingTable[target] - KingTable[origin] + offset;
+	}
 	case 2:
 		return KingTable[target] - KingTable[origin] + offset;
 	case 3:
@@ -201,7 +204,6 @@ int Evaluator::score_quiet_move(Board* pos, Move* m, std::vector<Move*>* killer_
 	case 12:
 		return PawnTable[target] - PawnTable[origin] + offset;
 	default:
-		//std::cout << "fuck ";
 		return 0;
 	}
 }
@@ -209,7 +211,7 @@ int Evaluator::score_quiet_move(Board* pos, Move* m, std::vector<Move*>* killer_
 int Evaluator::score_capture(Board* pos, Move* move) {
 	int origin = move->origin;
 	int target = move->target;
-	return pos->position[target]->value() - pos->position[origin]->value();
+	return pos->position[target]->value() - pos->position[origin]->value() + CAPTURE_SCORE;
 }
 
 int Evaluator::score_move(Board* pos, Move* move, std::vector<Move*>* killer_moves_at_depth) {
@@ -218,7 +220,7 @@ int Evaluator::score_move(Board* pos, Move* move, std::vector<Move*>* killer_mov
 		return score_capture(pos, move) + score_quiet_move(pos, move, killer_moves_at_depth);
 	}
 	else {
-		// score quite move
+		// score quiet move
 		return score_quiet_move(pos, move, killer_moves_at_depth);
 	}
 }
@@ -277,7 +279,7 @@ int Evaluator::BishopTable[64] = {
 	-33,  -3, -14, -21, -13, -12, -39, -21,
 };
 
-int Evaluator::BishopTableEndgame[64] = {
+int Evaluator::BishopTableEndGame[64] = {
 	-14, -21, -11,  -8, -7,  -9, -17, -24,
 	 -8,  -4,   7, -12, -3, -13,  -4, -14,
 	  2,  -8,   0,  -1, -2,   6,   0,   4,
@@ -299,7 +301,7 @@ int Evaluator::RookTable[64] = {
 	-19, -13,   1,  17, 16,  7, -37, -26,
 };
 
-int Evaluator::RookTableEndgame[64] = {
+int Evaluator::RookTableEndGame[64] = {
 	13, 10, 18, 15, 12,  12,   8,   5,
 	11, 13, 13, 11, -3,   3,   8,   3,
 	 7,  7,  7,  5,  4,  -3,  -5,  -3,
@@ -353,3 +355,7 @@ int Evaluator::KingTableEndGame[64] = {
 	-27, -11,   4,  13,  14,   4,  -5, -17,
 	-53, -34, -21, -11, -28, -14, -24, -43
 };
+
+int Evaluator::game_phase_inc[13] = { 0, 0, 0, 4, 4, 2, 2, 1, 1, 1, 1, 0, 0 };
+int Evaluator::mg_value[13] = { 0, 0, 0, 1025, 1025, 477, 477, 365, 365, 337, 337, 82, 82 };
+int Evaluator::eg_value[13] = { 0, 0, 0, 936, 936, 512, 512, 297, 297, 281, 281, 94, 94 };

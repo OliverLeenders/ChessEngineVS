@@ -61,14 +61,16 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
  */
 Board::Board(std::string fen)
 {
-	// TODO: fix leak
+	// fill
+	std::vector<std::string>* fen_split = new std::vector<std::string>;
+	Utility::split_string(fen_split, fen);
+
 	for (int i = 0; i < 64; i++)
 	{
 		this->position[i] = new Piece(0);
 	}
 	int pos_index = 56;
-	long unsigned int i = 0;
-	for (; i < fen.size(); i++)
+	for (int i = 0; i < (*fen_split)[0].size(); i++)
 	{
 		char c = fen[i];
 		switch (c)
@@ -250,15 +252,12 @@ Board::Board(std::string fen)
 				}
 			}
 			break;
-		case ' ':
-			i++;
-			goto rest;
 		default:
 			break;
 		}
 	}
-rest:
-	if (fen[i] == 'w')
+
+	if ((*fen_split)[1] == "w")
 	{
 		this->white_to_move = true;
 	}
@@ -266,66 +265,66 @@ rest:
 	{
 		this->white_to_move = false;
 	}
-	i += 2;
 	for (int j = 0; j < 4; j++)
 	{
 		this->castling_rights[j] = false;
 	}
 	// some side has castling rights
-	if (fen[i] != '-')
+	if ((*fen_split)[2] != "-")
 	{
-		while (fen[i] != ' ')
-		{
-			if (fen[i] == 'K')
+		int i = 0;
+		for (int i = 0; i < (*fen_split)[2].size(); i++) {
 			{
-				this->castling_rights[0] = true;
+				if ((*fen_split)[2][i] == 'K')
+				{
+					this->castling_rights[0] = true;
+				}
+				else if ((*fen_split)[2][i] == 'Q')
+				{
+					this->castling_rights[1] = true;
+				}
+				else if ((*fen_split)[2][i] == 'k')
+				{
+					this->castling_rights[2] = true;
+				}
+				else if ((*fen_split)[2][i] == 'q')
+				{
+					this->castling_rights[3] = true;
+				}
 			}
-			else if (fen[i] == 'Q')
-			{
-				this->castling_rights[1] = true;
-			}
-			else if (fen[i] == 'k')
-			{
-				this->castling_rights[2] = true;
-			}
-			else if (fen[i] == 'q')
-			{
-				this->castling_rights[3] = true;
-			}
-			i++;
 		}
 	}
-	i++;
-	if (fen[i] != '-')
+	if ((*fen_split)[3] != "-")
 	{
 		// get en passant target square
-		int col = (int)fen[i] - 97;
-		int row = (fen[i + 1] - '0') - 1;
+		int col = (int)(*fen_split)[3][0] - 97;
+		int row = ((*fen_split)[3][1] - '0') - 1;
 		this->en_passant_target_index = row * 8 + col;
 	}
 	else
 	{
 		this->en_passant_target_index = -1;
 	}
-	//std::cout << fen[i] << std::endl;
-	/*
-	for (int j = 0; j < 4; j++)
-	{
-		std::cout << this->castling_rights[j];
-	}
-	std::cout << std::endl;
-	std::cout << "en passant target: " + std::to_string(this->en_passant_target_index) << std::endl;
-	*/
+	this->fifty_move_rule_counter = std::stoi((*fen_split)[4].c_str());
+	this->full_move_counter = std::stoi((*fen_split)[5].c_str());
+	// initialize pins & checks arrays
 	for (int i = 0; i < 64; i++)
 	{
 		this->pins[i] = 0;
 		this->checks[i] = false;
 	}
+	// compute attacks
+	compute_attacked_squares();
+	// compute pins + sliding checks
+	compute_pin_rays();
+	// compute pawn + knight checks
+	compute_other_checks();
+
+
+	// iniitialize transposition table
 	transposition_table = new zobrist_hashmap(1000000);
 	this->pos_hash = this->hash(this);
-	compute_attacked_squares();
-	compute_pin_rays();
-	compute_other_checks();
+
 }
 
 /**
@@ -2789,12 +2788,12 @@ void Board::make_move(Move* m) {
 	bool is_capture = m->is_capture;
 	bool is_promotion = m->is_promotion;
 	unsigned promotion_type = m->promotion_type;
-
+	//
+	
 	// managing stack
 
 	this->stack_moves->push_back(m);
 	this->stack_hashes->push_back(this->pos_hash);
-
 	// copying the castling rights
 	bool* copy_castling_rights = new bool[4];
 	for (int i = 0; i < 4; i++) {
@@ -2806,6 +2805,15 @@ void Board::make_move(Move* m) {
 	this->en_passant_target_index = -1;
 
 	this->stack_captures->push_back(this->position[target]->get_type());
+
+	this->stack_fifty->push_back(this->fifty_move_rule_counter);
+	this->full_move_counter--;
+	if (is_capture || m->is_pawn_push) {
+		this->fifty_move_rule_counter = 0;
+	}
+	else {
+		this->fifty_move_rule_counter++;
+	}
 
 	// update king position fields
 	if (this->position[origin]->get_type() == 1) {
@@ -3033,6 +3041,9 @@ void Board::unmake_move() {
 
 	this->en_passant_target_index = this->stack_en_passant_target_index->back();
 	this->stack_en_passant_target_index->pop_back();
+
+	this->fifty_move_rule_counter = this->stack_fifty->back();
+	this->stack_fifty->pop_back();
 
 	// unmake kingpos
 	if (this->position[target]->get_type() == 1) {

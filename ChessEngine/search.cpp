@@ -30,6 +30,7 @@ Search::Search()
 int Search::evaluate(Board* pos, unsigned int depth)
 {
 	this->search_depth = depth;
+	this->node_count = 0;
 	std::list<Move*>* PV = new std::list<Move*>;
 	for (unsigned int j = 0; j < depth - 1; j++) {
 		std::vector<Move*>* init_v = new std::vector<Move*>();

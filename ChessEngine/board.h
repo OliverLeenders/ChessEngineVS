@@ -74,15 +74,20 @@ public:
 	* Queenside black
 	*/
 	bool* castling_rights = new bool[4];
+	// position array
 	Piece** position = new Piece * [64];
-
+	// piece lists
 	std::list<int>* queen_list = new std::list<int>;
 	std::list<int>* rook_list = new std::list<int>;
 	std::list<int>* bishop_list = new std::list<int>;
 	std::list<int>* knight_list = new std::list<int>;
 	std::list<int>* pawn_list = new std::list<int>;
-
 	
+	// 50 move rule counter
+	int fifty_move_rule_counter = 0;
+	int full_move_counter = 0;
+
+	// switch move
 	void switch_move();
 	
 	int set_piece(unsigned type, int pos);
@@ -99,6 +104,7 @@ public:
 
 	std::vector<Move*>* stack_moves = new std::vector<Move*>;
 	std::vector<uint64_t>* stack_hashes = new std::vector<uint64_t>;
+	std::vector<int>* stack_fifty = new std::vector<int>;
 
 	zobrist_hashmap* transposition_table;
 

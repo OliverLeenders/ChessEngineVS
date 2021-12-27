@@ -50,19 +50,23 @@ int main(int argc, char** argv)
  * \param depth depth to search to
  */
 void perft(Board* b, int depth) {
+	if (depth == 0) {
+		std::cout << "Nodes searched: 1" << std::endl;
+		return;
+	}
 	std::vector<Move*>* moves = b->possible_moves();
 	std::cout << "number of moves " << moves->size() << std::endl;
 	Evaluator* e = new Evaluator();
 	//moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
-	//std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2); });
+	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2, nullptr); });
 	for (Move* const& move : *moves) {
-		//int score = Evaluator::score_move(b, move);
+		int score = Evaluator::score_move(b, move, nullptr);
 		b->make_move(move);
 		Movegen* gen = new Movegen(b);
 		int num_moves = gen->generate_moves(depth - 1);
 		total += num_moves;
-		std::cout << move->to_string() << ": " << num_moves << std::endl;
+		std::cout << move->to_string() << ": " << num_moves << " score " << score << std::endl;
 		delete gen;
 		b->unmake_move();
 	}
@@ -100,12 +104,13 @@ void ni_search(Board* b, int depth) {
  */
 void uci_console() {
 	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	Evaluator::init_tables();
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
 	while (true) {
 		std::string line = "";
 		std::getline(std::cin, line);
 		std::vector<std::string>* split = new std::vector<std::string>;
-		split_string(split, line);
+		Utility::split_string(split, line);
 
 		if (split->size() != 0) {
 			if ((*split)[0] == "quit") {
@@ -167,11 +172,11 @@ void uci_console() {
 					}
 					else if ((*split)[1] == "kiwipete") {
 						delete board;
-						board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+						board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 					}
 					else if ((*split)[1] == "pos3") {
 						delete board;
-						board = new Board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
+						board = new Board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
 					}
 					else if (split->size() >= 3) {
 						if ((*split)[1] == "fen") {
@@ -242,24 +247,3 @@ void uci_console() {
 	delete board;
 }
 
-/**
- * Utility function to split a string into a vector.
- *
- * \param v vector of strings
- * \param s string to split
- */
-void split_string(std::vector<std::string>* v, std::string s) {
-	std::string tmp = "";
-	for (int i = 0; i < s.length(); i++) {
-		if (s[i] != ' ') {
-			tmp.push_back(s[i]);
-		}
-		else {
-			if (tmp != "") {
-				v->push_back(tmp);
-			}
-			tmp = "";
-		}
-	}
-	v->push_back(tmp);
-}
