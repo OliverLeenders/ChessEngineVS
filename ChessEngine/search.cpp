@@ -186,6 +186,26 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			delete moves;
 			return 0;
 		}
+		
+		if (pos->num_checks == 0 && depth_left >= 3) {
+			int pos_fifty = pos->fifty_move_rule_counter;
+			pos->fifty_move_rule_counter = 0;
+			
+			pos->switch_move();
+			int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - 2, PV);
+			pos->switch_move();
+
+			pos->fifty_move_rule_counter = pos_fifty;
+
+			if (score >= beta) {
+				for (Move* const& m : *moves) {
+					delete m;
+				}
+				delete moves;
+				return beta;
+			}
+		}
+		
 		// create PV line
 		std::list<Move*>* line = new std::list<Move*>();
 		for (Move* const& move : *moves)
