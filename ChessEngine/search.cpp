@@ -167,12 +167,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		// get legal moves
 		std::vector<Move*>* moves = pos->possible_moves();
 		// sort moves
-		if (depth_left < killer_moves->size()) {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
-		}
-		else {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
-		}
+		
 
 		// if is checkmate
 		if (moves->size() == 0 && pos->num_checks > 0)
@@ -187,11 +182,21 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			return 0;
 		}
 		
+		if (depth_left < killer_moves->size()) {
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
+		}
+		else {
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
+		}
+
+		bool is_check = pos->num_checks > 0;
+
 		if (pos->num_checks == 0 && depth_left >= 3) {
 			int pos_fifty = pos->fifty_move_rule_counter;
 			pos->fifty_move_rule_counter = 0;
 			
 			pos->switch_move();
+			// null window search
 			int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - 2, PV);
 			pos->switch_move();
 
@@ -208,6 +213,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		
 		// create PV line
 		std::list<Move*>* line = new std::list<Move*>();
+		int i = 0;
 		for (Move* const& move : *moves)
 		{
 			// make move on board
@@ -235,7 +241,24 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		next:
 			// if score is not 0 because of threefold repetition
 			if (!draw_score) {
-				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
+				if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
+				}
+				else {
+					if (i < 7) {
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line);
+					}
+					else {
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left / 3, line);
+					}
+					if (score > alpha && score < beta) {
+						for (Move* const& lm : *line) {
+							delete lm;
+						}
+						line->clear();
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
+					}
+				}
 			}
 			// fail high -- beta cutoff
 			if (score >= beta)
@@ -285,6 +308,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				delete b;
 			}
 			line->clear();
+			i++;
 		}
 		for (Move* const& b : *moves)
 		{
