@@ -245,7 +245,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
 				}
 				else {
-					if (i < 7) {
+					if (i < 9) {
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line);
 					}
 					else {
@@ -529,19 +529,35 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 {
 	// increase node count
 	this->node_count++;
-	// compute standin pat -- preliminary eval  
-	int stand_pat = Evaluator::evaluate(pos);
-	// stand_pat beta cutoff5ä
-	if (stand_pat >= beta)
-	{
-		return beta;
-	}
-	else if (stand_pat > alpha)
-	{
-		alpha = stand_pat;
-	}
-
 	std::vector<Move*>* moves = pos->get_legal_captures();
+	// if not in check
+	if (pos->num_checks == 0) {
+		int stand_pat = Evaluator::evaluate(pos);
+		// stand_pat beta cutoff
+		if (stand_pat >= beta)
+		{
+			for (Move* const& m : *moves) {
+				delete m;
+			}
+			delete moves;
+			return beta;
+		}
+		else if (stand_pat > alpha)
+		{
+			alpha = stand_pat;
+		}
+	}
+	else {
+		// if in check => search all check evasions <=> all legal moves
+		for (Move* const& m : *moves) {
+			delete m;
+		}
+		delete moves;
+		moves = pos->possible_moves();
+	}
+	// compute standing pat -- preliminary eval  
+	
+
 	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
