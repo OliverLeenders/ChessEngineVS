@@ -156,53 +156,49 @@ int Evaluator::evaluate(Board* b)
  * \param m_2 move 2
  * \return true if and only if move 1 & 2 are already in the correct respective order.
  */
-bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, std::vector<Move*>* killer_moves_at_depth) {
-	return score_move(pos, m_1, killer_moves_at_depth) > score_move(pos, m_2, killer_moves_at_depth);
+bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, bool left_most) {
+	return score_move(pos, m_1, pv_move, left_most) > score_move(pos, m_2, pv_move, left_most);
 
 }
 
-int Evaluator::score_quiet_move(Board* pos, Move* m, std::vector<Move*>* killer_moves_at_depth) {
+int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	int origin = m->origin;
 	int target = m->target;
 	if (pos->position[origin]->is_white()) {
 		origin = mirror_vertical(origin);
 		target = mirror_vertical(target);
 	}
-	int offset = 0;
-	if (killer_moves_at_depth != nullptr) {
-		if (m->equals(killer_moves_at_depth->at(0)) || m->equals(killer_moves_at_depth->at(1))) {
-			offset += KILLER_MOVE_SCORE;
-		}
-	}
+
+	//offset = 0;
 	unsigned type = pos->position[origin]->get_type();
 	switch (type)
 	{
 	case 1:
 	{
-		return  KingTable[target] - KingTable[origin] + offset;
+		return  KingTable[target] - KingTable[origin];
 	}
 	case 2:
-		return KingTable[target] - KingTable[origin] + offset;
+		return KingTable[target] - KingTable[origin];
 	case 3:
-		return QueenTable[target] - QueenTable[origin] + offset;
+		return QueenTable[target] - QueenTable[origin];
 	case 4:
-		return QueenTable[target] - QueenTable[origin] + offset;
+		return QueenTable[target] - QueenTable[origin];
 	case 5:
-		return RookTable[target] - RookTable[origin] + offset;
+		return RookTable[target] - RookTable[origin];
 	case 6:
-		return RookTable[target] - RookTable[origin] + offset;
+		return RookTable[target] - RookTable[origin];
 	case 7:
-		return BishopTable[target] - BishopTable[origin] + offset;
+		return BishopTable[target] - BishopTable[origin];
 	case 8:
-		return BishopTable[target] - BishopTable[origin] + offset;
+		return BishopTable[target] - BishopTable[origin];
 	case 9:
-		return KnightTable[target] - KnightTable[origin] + offset;
+		return KnightTable[target] - KnightTable[origin];
 	case 10:
-		return KnightTable[target] - KnightTable[origin] + offset;
+		return KnightTable[target] - KnightTable[origin];
 	case 11:
-		return PawnTable[target] - PawnTable[origin] + offset;
+		return PawnTable[target] - PawnTable[origin];
 	case 12:
-		return PawnTable[target] - PawnTable[origin] + offset;
+		return PawnTable[target] - PawnTable[origin];
 	default:
 		return 0;
 	}
@@ -214,14 +210,19 @@ int Evaluator::score_capture(Board* pos, Move* move) {
 	return pos->position[target]->value() - pos->position[origin]->value() + CAPTURE_SCORE;
 }
 
-int Evaluator::score_move(Board* pos, Move* move, std::vector<Move*>* killer_moves_at_depth) {
+int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, bool left_most) {
+	int offset = 0;
+	if (left_most && pv_move != nullptr && move->equals(pv_move)) {
+		offset += PV_SCORE;
+		//std::cout << pv_move->to_string() << "\n";
+	}
 	if (move->is_capture) {
 		// score capture
-		return score_capture(pos, move) + score_quiet_move(pos, move, killer_moves_at_depth);
+		return score_capture(pos, move) + score_quiet_move(pos, move) + offset;
 	}
 	else {
 		// score quiet move
-		return score_quiet_move(pos, move, killer_moves_at_depth);
+		return score_quiet_move(pos, move) + offset;
 	}
 }
 int Evaluator::PawnTable[64] = {

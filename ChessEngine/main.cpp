@@ -59,9 +59,9 @@ void perft(Board* b, int depth) {
 	Evaluator* e = new Evaluator();
 	//moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
-	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2, nullptr); });
+	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2, nullptr, false); });
 	for (Move* const& move : *moves) {
-		int score = Evaluator::score_move(b, move, nullptr);
+		int score = Evaluator::score_move(b, move, nullptr, false);
 		b->make_move(move);
 		Movegen* gen = new Movegen(b);
 		int num_moves = gen->generate_moves(depth - 1);
@@ -215,13 +215,13 @@ void uci_console() {
 					else if ((*split)[1] == "depth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							ni_search(board, depth);
+							search(board, depth);
 						}
 					}
 					else if ((*split)[1] == "nidepth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							search(board, depth);
+							ni_search(board, depth);
 						}
 					}
 					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {

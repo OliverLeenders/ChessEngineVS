@@ -174,6 +174,6 @@ Move* Move::clone() {
 }
 
 bool Move::equals(Move* m) {
-	return (m->origin == this->origin) && (m->target == this->target) && (m->is_capture == this->is_capture) && (m->is_promotion == this->is_promotion) && (m->promotion_type && this->promotion_type);
+	return (m->origin == this->origin) && (m->target == this->target) && (m->is_capture == this->is_capture) && (m->is_promotion == this->is_promotion) && (m->promotion_type == this->promotion_type);
 }
 

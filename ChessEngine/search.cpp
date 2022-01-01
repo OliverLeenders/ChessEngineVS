@@ -3,17 +3,18 @@
  * @brief Construct a new Search:: Search object
  *
  */
- /**
-  * @brief Destroy the Search:: Search object
-  *
-  */
-Search::~Search()
-{
-}
-
 Search::Search()
 {
 }
+/**
+ * @brief Destroy the Search:: Search object
+ *
+ */
+Search::~Search()
+{
+	delete this->prev_pv;
+}
+
 /**
  * @brief performs an alpha-beta pruning minimax search according to the negamax framework
  * and gathers a principal variation
@@ -32,13 +33,7 @@ int Search::evaluate(Board* pos, unsigned int depth)
 	this->search_depth = depth;
 	this->node_count = 0;
 	std::list<Move*>* PV = new std::list<Move*>;
-	for (unsigned int j = 0; j < depth - 1; j++) {
-		std::vector<Move*>* init_v = new std::vector<Move*>();
-		init_v->push_back(new Move(-1, -1, false, false, false, 0));
-		init_v->push_back(new Move(-1, -1, false, false, false, 0));
-		killer_moves->push_back(init_v);
-	}
-	int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV);
+	int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
 	if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 		std::cout << "info score cp " << res;
 	}
@@ -51,7 +46,7 @@ int Search::evaluate(Board* pos, unsigned int depth)
 		std::cout << move->to_string() << " ";
 	}
 	std::cout << "nodes " << this->node_count;
-
+	std::cout << " depth " << depth;
 
 	std::cout << std::endl;
 
@@ -82,52 +77,38 @@ int Search::evaluate(Board* pos, unsigned int depth)
  */
 int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 {
-	std::list<Move*>* prev_PV = new std::list<Move*>;
-	int res = 0;
-	std::string best_move = "";
+	std::string best_move = "NOMOVE";
 
-	for (unsigned int i = 1; i <= depth; i++)
-	{
-		this->search_depth = i;
+	for (int i = 1; i <= depth; i++) {
+		this->search_depth = depth;
 		this->node_count = 0;
-		// init killer moves
-		for (unsigned int j = 0; j < i - 1; j++) {
-			std::vector<Move*>* init_v = new std::vector<Move*>();
-			init_v->push_back(new Move(-1, -1, false, false, false, 0));
-			init_v->push_back(new Move(-1, -1, false, false, false, 0));
-			killer_moves->push_back(init_v);
-		}
 		std::list<Move*>* PV = new std::list<Move*>;
-		for (unsigned i = 0; i < depth; i++) {
-			std::vector<Move> init;
-			init.push_back(Move(-1, -1, false, false, false, 0));
-			init.push_back(Move(-1, -1, false, false, false, 0));
-		}
-		res = this->alpha_beta_prev_PV(pos, -INT_MAX, INT_MAX, i, PV, true, prev_PV);
+		int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
 		if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 			std::cout << "info score cp " << res;
 		}
 		else {
 			std::cout << "info score mate " << Utility::sgn(res) * (MATE_IN_ZERO - std::abs(res) + 1) / 2;
 		}
-		std::cout << " depth " << i;
 		std::cout << " pv ";
 		for (Move* const& move : *PV)
 		{
 			std::cout << move->to_string() << " ";
 		}
 		std::cout << "nodes " << this->node_count;
+		std::cout << " depth " << i;
+
 		std::cout << std::endl;
 
 		best_move = PV->front()->to_string();
-
-		for (Move* const& i : *prev_PV)
-		{
-			delete i;
+		for (Move* const& move : *this->prev_pv) {
+			delete move;
 		}
-		prev_PV->clear();
-		delete prev_PV;
-		prev_PV = PV;
+		prev_pv->clear();
+		for (Move* const& move : *PV) {
+			this->prev_pv->push_back(move->clone());
+			delete move;
+		}
 		for (std::vector<Move*>* const& v : *killer_moves) {
 			for (Move* const& move : *v) {
 				delete move;
@@ -136,17 +117,14 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		}
 		killer_moves->clear();
 	}
-	std::cout << "bestmove " << best_move << std::endl << std::endl;
-	for (Move* const& i : *prev_PV)
-	{
-		delete i;
+	for (Move* const& m : *this->prev_pv) {
+		delete m;
 	}
-	prev_PV->clear();
-	delete prev_PV;
-	return res;
+	prev_pv->clear();
+	std::cout << "bestmove " << best_move << "\n" << std::endl;
 }
 
-int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV)
+int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, int ply, bool left_most)
 {
 
 	if (depth_left == 0)
@@ -155,10 +133,10 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		pos->compute_other_checks();
 		if (pos->num_checks != 0) {
 			this->search_depth++;
-			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV);
+			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
 			this->search_depth--;
 		}
-		return this->quiescence(pos, alpha, beta);
+		return this->quiescence(pos, alpha, beta, ply);
 	}
 	else
 	{
@@ -167,13 +145,13 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		// get legal moves
 		std::vector<Move*>* moves = pos->possible_moves();
 		// sort moves
-		
+
 
 		// if is checkmate
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			return -MATE_IN_ZERO + (this->search_depth - depth_left);
+			return -MATE_IN_ZERO + ply;
 		}
 		// if is stalemate
 		else if (moves->size() == 0)
@@ -181,23 +159,24 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			delete moves;
 			return 0;
 		}
-		
-		if (depth_left < killer_moves->size()) {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
+		if (prev_pv->size() > ply) {
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply, left_most](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->prev_pv->at(ply), left_most); });
 		}
 		else {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
+			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, false); });
+
 		}
+
 
 		bool is_check = pos->num_checks > 0;
 
 		if (pos->num_checks == 0 && depth_left >= 3) {
 			int pos_fifty = pos->fifty_move_rule_counter;
 			pos->fifty_move_rule_counter = 0;
-			
+
 			pos->switch_move();
 			// null window search
-			int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - 2, PV);
+			int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - 2, PV, ply + 1, false);
 			pos->switch_move();
 
 			pos->fifty_move_rule_counter = pos_fifty;
@@ -210,7 +189,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				return beta;
 			}
 		}
-		
+
 		// create PV line
 		std::list<Move*>* line = new std::list<Move*>();
 		int i = 0;
@@ -242,34 +221,27 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			// if score is not 0 because of threefold repetition
 			if (!draw_score) {
 				if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
-					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 				}
 				else {
 					if (i < 9) {
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line);
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line, ply + 1, left_most && i == 0);
 					}
 					else {
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left / 3, line);
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left / 3, line, ply + 1, left_most && i == 0);
 					}
 					if (score > alpha && score < beta) {
 						for (Move* const& lm : *line) {
 							delete lm;
 						}
 						line->clear();
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 					}
 				}
 			}
 			// fail high -- beta cutoff
 			if (score >= beta)
 			{
-				// update killer moves
-				if ((!move->is_capture) && depth_left < killer_moves->size()) {
-					if (!killer_moves->at(depth_left)->at(1 - swap_first)->equals(move)) {
-						delete killer_moves->at(depth_left)->at(1 - swap_first);
-						killer_moves->at(depth_left)->at(1 - swap_first) = move->clone();
-					}
-				}
 				pos->unmake_move();
 				// cleanup
 				for (Move* const& imove : *moves)
@@ -319,203 +291,6 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 	}
 	return alpha;
 }
-
-/**
- * Alpha beta search with a given previous PV which is held as the leftmost branch of the tree. Should give a speed boost due to more beta-cutoffs.
- *
- * \param pos position to search
- * \param alpha alpha value
- * \param beta beta value
- * \param depth_left depth left to search
- * \param PV principal variation
- * \param e evalutator object
- * \param left_most boolean indicating whether branch is left most
- * \param prev_pv previous PV
- * \return eval
- */
-int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, bool left_most, std::list<Move*>* prev_pv)
-{
-	// if previous PV has been exhausted
-	if (prev_pv->size() == 0)
-	{
-		return this->alpha_beta(pos, alpha, beta, depth_left, PV);
-	}
-	// if depth left has been exhausted
-	if (depth_left == 0)
-	{
-		return this->quiescence(pos, alpha, beta);
-	}
-	else
-	{
-		this->node_count++;
-		// allocate PV line of subtree
-		std::list<Move*>* line = new std::list<Move*>;
-		// generate possible moves
-		std::vector<Move*>* moves = pos->possible_moves();
-		// generate a hash for the position
-
-		// if is checkmate
-		if (moves->size() == 0 && pos->num_checks > 0)
-		{
-			delete moves;
-			delete line;
-			return -MATE_IN_ZERO + (this->search_depth - depth_left);
-		}
-		// if is stalemate
-		else if (moves->size() == 0)
-		{
-			delete moves;
-			delete line;
-			return 0;
-		}
-
-		// get & pop previous PV move
-		Move* pv_pos = prev_pv->front();
-		prev_pv->pop_front();
-
-		// add PV move to move list and swap to front
-		Move* first = moves->front();
-		moves->front() = pv_pos;
-		moves->push_back(first);
-
-		// perform move ordering 
-		if (depth_left < killer_moves->size()) {
-			std::stable_sort(moves->begin() + 1, moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->killer_moves->at(depth_left)); });
-		}
-		else {
-			std::stable_sort(moves->begin() + 1, moves->end(), [pos, this, depth_left](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
-		}
-
-		// index for checking the leftmost child move
-		int i = 0;
-
-		// iterate over moves
-		for (Move* const& move : *moves)
-		{
-			// make move on board
-			pos->make_move(move);
-			int score;
-			bool draw_score = false;
-			// check for threefold repetition
-			int repetition_counter = 0;
-
-			for (int history_index = pos->stack_moves->size() - 1; history_index >= 0; history_index--) {
-				if (pos->stack_moves->at(history_index)->is_capture) {
-					goto next;
-				}
-				if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
-					repetition_counter++;
-				}
-				if (repetition_counter == 2) {
-					draw_score = true;
-					score = 0;
-					goto next;
-				}
-
-			}
-		next:
-			if (!draw_score) {
-				score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line);
-
-			}
-			// if is left-most child
-			if (i == 0 && left_most)
-			{
-				// left most path along search tree should be initial PV
-				// clear current PV
-				for (Move* const& pv_move : *PV)
-				{
-					delete pv_move;
-				}
-				PV->clear();
-
-				// copy PV from subtree PV
-				for (Move* const& line_move : *line)
-				{
-					PV->push_back(line_move->clone());
-				}
-				PV->push_front(move->clone());
-			}
-			// if move is not left most, i.e. not PV pos 
-			else
-			{
-				// beta-cutoff branch
-				if (score >= beta)
-				{
-					// update killer moves
-					if ((!move->is_capture) && depth_left < killer_moves->size()) {
-						if (swap_first && (!killer_moves->at(depth_left)->at(0)->equals(move))) {
-							delete killer_moves->at(depth_left)->at(0);
-							killer_moves->at(depth_left)->at(0) = move->clone();
-						}
-						else if ((!swap_first) && (!killer_moves->at(depth_left)->at(1)->equals(move))) {
-							delete killer_moves->at(depth_left)->at(1);
-							killer_moves->at(depth_left)->at(1) = move->clone();
-						}
-					}
-					// undo move on board
-					pos->unmake_move();
-					// free move list
-					for (Move* const& move : *moves)
-					{
-						delete move;
-					}
-					// clear subtree PV
-					for (Move* const& line_move : *line)
-					{
-						delete line_move;
-					}
-					delete line;
-					delete moves;
-					// if is new position
-					return beta;
-					//  fail hard beta-cutoff
-				}
-				// alpha branch
-				else if (score > alpha)
-				{
-
-					// clear current PV
-					for (Move* const& pv_move : *PV)
-					{
-						delete pv_move;
-					}
-
-					PV->clear();
-					// copy over subtree pv
-					for (Move* const& line_move : *line)
-					{
-						PV->push_back(line_move->clone());
-					}
-					// add current move as first move
-					PV->push_front(move->clone());
-					// if is new position
-					alpha = score; // alpha acts like max in MiniMax
-				}
-			}
-			// increment counter
-			i++;
-			// undo move on board
-			pos->unmake_move();
-			// delete subtree PV
-			for (Move* const& b : *line)
-			{
-				delete b;
-			}
-			line->clear();
-		}
-		// delete move list
-		for (Move* const& b : *moves)
-		{
-			delete b;
-		}
-		delete line;
-		delete moves;
-
-	}
-	// return score
-	return alpha;
-}
 /**
  * @brief performs a quiescence search such that only "quiet" positions are evaluated
  *
@@ -525,14 +300,16 @@ int Search::alpha_beta_prev_PV(Board* pos, int alpha, int beta, unsigned int dep
  * @param e evaluator object
  * @return int evaluation
  */
-int Search::quiescence(Board* pos, int alpha, int beta)
+int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 {
 	// increase node count
 	this->node_count++;
 	std::vector<Move*>* moves = pos->get_legal_captures();
 	// if not in check
 	if (pos->num_checks == 0) {
+		// compute standing pat -- preliminary eval  
 		int stand_pat = Evaluator::evaluate(pos);
+
 		// stand_pat beta cutoff
 		if (stand_pat >= beta)
 		{
@@ -548,17 +325,21 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 		}
 	}
 	else {
-		// if in check => search all check evasions <=> all legal moves
+		// if in check => search all check evasions = all legal moves
 		for (Move* const& m : *moves) {
 			delete m;
 		}
 		delete moves;
 		moves = pos->possible_moves();
-	}
-	// compute standing pat -- preliminary eval  
-	
 
-	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr); });
+		if (moves->size() == 0) {
+			delete moves;
+			return -MATE_IN_ZERO + ply;
+		}
+	}
+
+
+	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, false); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
@@ -574,7 +355,7 @@ int Search::quiescence(Board* pos, int alpha, int beta)
 		{
 			pos->make_move(move);
 			int score;
-			score = -this->quiescence(pos, -beta, -alpha);
+			score = -this->quiescence(pos, -beta, -alpha, ply + 1);
 			if (score >= beta)
 			{
 				pos->unmake_move();
