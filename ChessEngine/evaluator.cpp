@@ -42,12 +42,6 @@ void Evaluator::init_tables() {
 		mg_table[11][i] = PawnTable[i];
 		eg_table[11][i] = PawnTableEndGame[i];
 	}
-	for (int i = 0; i < 8; i++) {
-		for (int j = 0; j < 8; j++) {
-			std::cout << eg_table[10][8 * i + j] << ", ";
-		}
-		std::cout << "\n";
-	}
 }
 
 int Evaluator::evaluate(Board* b)

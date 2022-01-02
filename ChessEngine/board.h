@@ -1,16 +1,4 @@
-/*
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-#ifdef _DEBUG
-#ifndef DBG_NEW
-#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-#define new DBG_NEW
-#endif
-#endif
-*/
-#ifndef Board_H
-#define Board_H
+#pragma once
 
 #include "Piece.h"
 #include <string>
@@ -87,7 +75,7 @@ public:
 	int fifty_move_rule_counter = 0;
 	int full_move_counter = 0;
 
-	// switch move
+	// switch move <=> null move
 	void switch_move();
 	
 	int set_piece(unsigned type, int pos);
@@ -121,12 +109,9 @@ public:
 	void move_with_offset(std::vector<Move*>* moves, int i, int j);
 	
 	bool equals(Board* b);
-	
 
 	void make_move(Move* m);
 	void unmake_move();
 
 	~Board();
 };
-
-#endif

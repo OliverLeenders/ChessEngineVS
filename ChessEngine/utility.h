@@ -1,6 +1,4 @@
-
-#ifndef Utility_H
-#define Utility_H
+#pragma once
 
 #include <list>
 #include <vector>
@@ -19,5 +17,3 @@ public:
 private:
 
 };
-
-#endif

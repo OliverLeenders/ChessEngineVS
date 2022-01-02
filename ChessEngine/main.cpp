@@ -92,6 +92,12 @@ void search(Board* b, int depth) {
 	delete s;
 }
 
+void search_time(Board* b, int time_ms) {
+	Search* s = new Search();
+	s->evaluate_iterative_deepening_time(b, time_ms);
+	delete s;
+}
+
 void ni_search(Board* b, int depth) {
 	Search* s = new Search();
 	s->evaluate(b, depth);
@@ -226,6 +232,12 @@ void uci_console() {
 					}
 					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
 						ni_search(board, 5);
+					}
+					else if ((*split)[1] == "movetime") {
+						if (split->size() == 3) {
+							int time_ms = std::stoi((*split)[2]);
+							search_time(board, time_ms);
+						}
 					}
 
 				}

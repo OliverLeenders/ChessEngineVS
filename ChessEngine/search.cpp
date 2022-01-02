@@ -124,9 +124,71 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 }
 
+int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
+{
+	std::string best_move = "NOMOVE";
+	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+	this->duration = std::chrono::milliseconds(ms);
+	int depth = 1;
+	bool time_left = true;
+	while (time_left) {
+		this->search_depth = depth;
+		this->node_count = 0;
+		std::list<Move*>* PV = new std::list<Move*>;
+		int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
+		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+		if (now - this->start_time < this->duration) {
+			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
+				std::cout << "info score cp " << res;
+			}
+			else {
+				std::cout << "info score mate " << Utility::sgn(res) * (MATE_IN_ZERO - std::abs(res) + 1) / 2;
+			}
+			std::cout << " pv ";
+			for (Move* const& move : *PV)
+			{
+				std::cout << move->to_string() << " ";
+			}
+			std::cout << "nodes " << this->node_count;
+			std::cout << " depth " << depth;
+
+			std::cout << std::endl;
+		} else {
+			time_left = false;
+		}
+		best_move = PV->front()->to_string();
+		for (Move* const& move : *this->prev_pv) {
+			delete move;
+		}
+		prev_pv->clear();
+		for (Move* const& move : *PV) {
+			this->prev_pv->push_back(move->clone());
+			delete move;
+		}
+		for (std::vector<Move*>* const& v : *killer_moves) {
+			for (Move* const& move : *v) {
+				delete move;
+			}
+			delete v;
+		}
+		killer_moves->clear();
+		depth++;
+	}
+	for (Move* const& m : *this->prev_pv) {
+		delete m;
+	}
+	prev_pv->clear();
+	std::cout << "bestmove " << best_move << "\n" << std::endl;
+	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+	this->duration = std::chrono::milliseconds(INT32_MAX);
+}
+
 int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, int ply, bool left_most)
 {
-
+	std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+	if (now - this->start_time >= this->duration) {
+		return 0;
+	}
 	if (depth_left == 0)
 	{
 		pos->compute_pin_rays();
@@ -220,11 +282,14 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		next:
 			// if score is not 0 because of threefold repetition
 			if (!draw_score) {
-				if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
+				if (left_most && ply < PV->size() && i == 0) {
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
+				}
+				else if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 				}
 				else {
-					if (i < 9) {
+					if (i < 7) {
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line, ply + 1, left_most && i == 0);
 					}
 					else {
