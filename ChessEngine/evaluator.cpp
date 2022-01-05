@@ -224,7 +224,6 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, std::vector<Mov
 			}
 		}
 		return score_quiet_move(pos, move);
-		//return 0;
 	}
 }
 int Evaluator::PawnTable[64] = {

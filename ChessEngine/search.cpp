@@ -145,6 +145,14 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 		this->search_depth = depth;
 		this->node_count = 0;
 		std::list<Move*>* PV = new std::list<Move*>;
+		for (int killer_i = 0; killer_i < depth; killer_i++) {
+			std::vector<Move*>* v = new std::vector<Move*>();
+			v->push_back(new Move(-1, -1, false, false, false, 0));
+			v->push_back(new Move(-1, -1, false, false, false, 0));
+			this->killer_moves->push_back(v);
+		}
+
+
 		int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
 		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 		if (now - this->start_time < this->duration) {
