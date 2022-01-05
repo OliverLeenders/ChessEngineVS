@@ -50,7 +50,7 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
-	transposition_table = new zobrist_hashmap(1000000);
+	transposition_table = new zobrist_hashmap(10000000);
 	this->pos_hash = this->hash(this);
 }
 

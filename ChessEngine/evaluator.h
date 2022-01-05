@@ -7,17 +7,18 @@
 
 constexpr int PV_SCORE = 300000;
 constexpr int CAPTURE_SCORE = 200000;
-constexpr int KILLER_MOVE_SCORE = 100000;
+constexpr int KILLER_MOVE_ONE = 100000;
+constexpr int KILLER_MOVE_TWO = 90000;
 
 class Evaluator
 {
 public:
 	Evaluator();
 	static int evaluate(Board* b);
-	static bool compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, bool left_most);
+	static bool compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most);
 	static int mirror_vertical(int i);
 	static int score_quiet_move(Board* pos, Move *m);
-	static int score_move(Board* pos, Move* m, Move* pv_move, bool left_most);
+	static int score_move(Board* pos, Move* m, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most);
 	static int score_capture(Board* pos, Move* m);
 	~Evaluator();
 	static void init_tables();

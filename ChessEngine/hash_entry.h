@@ -2,19 +2,21 @@
 
 #include "move.h"
 
-#define EXACT_SCORE 0;
-#define UPPER_BOUND 1;
-#define LOWER_BOUND 2;
-
+constexpr int EXACT_SCORE = 0;
+constexpr int UPPER_BOUND = 1;
+constexpr int LOWER_BOUND = 2;
+constexpr int VAL_UNKNOWN = 2000000;
 
 class hash_entry
 {
 public:
-	hash_entry(int set_score, int set_depth_left, int set_score_type, Move* set_best_move);
+	hash_entry(uint64_t z_key ,int set_score, int ply, int set_flag, Move* set_best_move);
+	hash_entry();
+	uint64_t key;
 	int score;
-	int depth_left;
-	int score_type;
-	unsigned times_hit;
+	int ply;
+	int flag;
+	unsigned times_hit = 0;
 	Move* best_move;
 	~hash_entry();
 }; 

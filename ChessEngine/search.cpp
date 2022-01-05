@@ -83,6 +83,13 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		this->search_depth = depth;
 		this->node_count = 0;
 		std::list<Move*>* PV = new std::list<Move*>;
+		for (int killer_i = 0; killer_i < i; killer_i++) {
+			std::vector<Move*>* v = new std::vector<Move*>();
+			v->push_back(new Move(-1, -1, false, false, false, 0));
+			v->push_back(new Move(-1, -1, false, false, false, 0));
+			this->killer_moves->push_back(v);
+		}
+
 		int res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
 		if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 			std::cout << "info score cp " << res;
@@ -104,11 +111,13 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		for (Move* const& move : *this->prev_pv) {
 			delete move;
 		}
+		// clearing the previous principal variation
 		prev_pv->clear();
 		for (Move* const& move : *PV) {
 			this->prev_pv->push_back(move->clone());
 			delete move;
 		}
+		// clearing the killer moves
 		for (std::vector<Move*>* const& v : *killer_moves) {
 			for (Move* const& move : *v) {
 				delete move;
@@ -116,6 +125,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			delete v;
 		}
 		killer_moves->clear();
+		pos->transposition_table->clear();
 	}
 	for (Move* const& m : *this->prev_pv) {
 		delete m;
@@ -153,10 +163,12 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			std::cout << " depth " << depth;
 
 			std::cout << std::endl;
-		} else {
+
+			best_move = PV->front()->to_string();
+		}
+		else {
 			time_left = false;
 		}
-		best_move = PV->front()->to_string();
 		for (Move* const& move : *this->prev_pv) {
 			delete move;
 		}
@@ -172,6 +184,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			delete v;
 		}
 		killer_moves->clear();
+		pos->transposition_table->clear();
 		depth++;
 	}
 	for (Move* const& m : *this->prev_pv) {
@@ -189,6 +202,14 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 	if (now - this->start_time >= this->duration) {
 		return 0;
 	}
+	// initializing hash flag
+	int flag = UPPER_BOUND;
+	// checking TT
+	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, ply, alpha, beta);
+	if (hash_score != VAL_UNKNOWN && (hash_score <= alpha || hash_score >= beta)) {
+		return hash_score;
+	}
+
 	if (depth_left == 0)
 	{
 		pos->compute_pin_rays();
@@ -198,7 +219,9 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
 			this->search_depth--;
 		}
-		return this->quiescence(pos, alpha, beta, ply);
+		int score = this->quiescence(pos, alpha, beta, ply);
+		pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		return score;
 	}
 	else
 	{
@@ -213,22 +236,26 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
+			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
 			return -MATE_IN_ZERO + ply;
 		}
 		// if is stalemate
 		else if (moves->size() == 0)
 		{
 			delete moves;
+			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
 			return 0;
 		}
+		Move* pv_move = nullptr;
 		if (prev_pv->size() > ply) {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply, left_most](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, this->prev_pv->at(ply), left_most); });
+			pv_move = this->prev_pv->at(ply);
 		}
-		else {
-			std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, false); });
-
+		std::vector<Move*>* killer_moves_at_depth = nullptr;
+		if (ply < killer_moves->size()) {
+			killer_moves_at_depth = killer_moves->at(ply);
 		}
 
+		std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply, pv_move, killer_moves_at_depth, left_most](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, killer_moves_at_depth, left_most); });
 
 		bool is_check = pos->num_checks > 0;
 
@@ -252,36 +279,36 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			}
 		}
 
-		// create PV line
-		std::list<Move*>* line = new std::list<Move*>();
-		int i = 0;
-		for (Move* const& move : *moves)
-		{
-			// make move on board
-			pos->make_move(move);
+		int score = 0;
+		bool draw_score = false;
+		// check for threefold repetition
+		int repetition_counter = 0;
 
-			int score;
-			bool draw_score = false;
-			// check for threefold repetition
-			int repetition_counter = 0;
-
-			// iterate backwards through moves stack
-			for (int history_index = pos->stack_moves->size() - 1; history_index >= 0; history_index--) {
-				if (pos->stack_moves->at(history_index)->is_capture || pos->stack_moves->at(history_index)->is_pawn_push) {
-					goto next;
-				}
-				if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
-					repetition_counter++;
-				}
-				if (repetition_counter == 2) {
-					draw_score = true;
-					score = 0;
-					goto next;
-				}
+		// iterate backwards through moves stack
+		for (int history_index = pos->stack_moves->size() - 1; history_index >= 0; history_index--) {
+			if (pos->stack_moves->at(history_index)->is_capture || pos->stack_moves->at(history_index)->is_pawn_push) {
+				goto next;
 			}
-		next:
-			// if score is not 0 because of threefold repetition
-			if (!draw_score) {
+			if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
+				repetition_counter++;
+			}
+			if (repetition_counter == 2) {
+				draw_score = true;
+				score = 0;
+				goto next;
+			}
+		}
+	next:
+		if (!draw_score) {
+			// create PV line
+			std::list<Move*>* line = new std::list<Move*>();
+			int i = 0;
+			for (Move* const& move : *moves)
+			{
+				// make move on board
+				pos->make_move(move);
+
+				// if score is not 0 because of threefold repetition
 				if (left_most && ply < PV->size() && i == 0) {
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 				}
@@ -303,58 +330,73 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 					}
 				}
-			}
-			// fail high -- beta cutoff
-			if (score >= beta)
-			{
-				pos->unmake_move();
-				// cleanup
-				for (Move* const& imove : *moves)
-				{
-					delete imove;
-				}
-				for (Move* const& line_move : *line)
-				{
-					delete line_move;
-				}
-				delete line;
-				delete moves;
-				return beta;
-				//  fail hard beta-cutoff
-			}
-			// score is inside alpha-beta window (PV Node)
-			else if (score > alpha)
-			{
-				for (Move* const& pv_move : *PV)
-				{
-					delete pv_move;
-				}
-				PV->clear();
-				for (Move* const& line_move : *line)
-				{
-					PV->push_back(line_move->clone());
-				}
-				PV->push_front(move->clone());
-				//std::cout << b->get_last_move() << std::endl;
-				alpha = score; // alpha acts like max in MiniMax
-			} // all other moves fail low
 
-			pos->unmake_move();
-			for (Move* const& b : *line)
+				// fail high -- beta cutoff
+				if (score >= beta)
+				{
+					pos->unmake_move();
+					if ((!move->is_capture) && ply < killer_moves->size()) {
+						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(1);
+						this->killer_moves->at(ply)->at(0) = move->clone();
+					}
+					// cleanup
+					for (Move* const& imove : *moves)
+					{
+						delete imove;
+					}
+					for (Move* const& line_move : *line)
+					{
+						delete line_move;
+					}
+					delete line;
+					delete moves;
+					pos->transposition_table->record_hash(pos->pos_hash, ply, beta, LOWER_BOUND, nullptr);
+					return beta;
+					//  fail hard beta-cutoff
+				}
+				// score is inside alpha-beta window (PV Node)
+				else if (score > alpha)
+				{
+					for (Move* const& pv_move : *PV)
+					{
+						delete pv_move;
+					}
+					PV->clear();
+					for (Move* const& line_move : *line)
+					{
+						PV->push_back(line_move->clone());
+					}
+					PV->push_front(move->clone());
+					//std::cout << b->get_last_move() << std::endl;
+					alpha = score; // alpha acts like max in MiniMax
+					flag = EXACT_SCORE;
+				} // all other moves fail low
+
+				pos->unmake_move();
+				for (Move* const& b : *line)
+				{
+					delete b;
+				}
+				line->clear();
+				i++;
+			}
+
+			for (Move* const& b : *moves)
 			{
 				delete b;
 			}
-			line->clear();
-			i++;
+			delete moves;
+			delete line;
 		}
-		for (Move* const& b : *moves)
-		{
-			delete b;
+		if (PV->size() > 0) {
+			Move* m = PV->front();
+			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, m);
 		}
-		delete moves;
-		delete line;
+		else {
+			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, nullptr);
+		}
+		return alpha;
 	}
-	return alpha;
 }
 /**
  * @brief performs a quiescence search such that only "quiet" positions are evaluated
@@ -404,7 +446,7 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 	}
 
 
-	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, false); });
+	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr,false); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{

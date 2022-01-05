@@ -1,11 +1,20 @@
 #include "hash_entry.h"
 
-hash_entry::hash_entry(int set_score, int set_depth_left, int set_score_type, Move* set_best_move) {
+hash_entry::hash_entry(uint64_t set_key, int set_score, int set_ply, int set_flag, Move* set_best_move) {
+	this->key = set_key;
 	this->score = set_score;
-	this->score_type = set_score_type;
-	this->depth_left = set_depth_left;
+	this->flag = set_flag;
+	this->ply = set_ply;
 	this->best_move = set_best_move->clone();
 	this->times_hit = 0;
+}
+
+hash_entry::hash_entry()
+{
+	this->key = 0;
+	this->score = 0;
+	this->flag = VAL_UNKNOWN;
+	this->best_move = nullptr;
 }
 
 hash_entry::~hash_entry() {

@@ -59,9 +59,9 @@ void perft(Board* b, int depth) {
 	Evaluator* e = new Evaluator();
 	//moves->sort([b, e](Move* m_1, Move* m_2) {return e->compare(b, m_1, m_2); });
 	int total = 0;
-	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2, nullptr, false); });
+	std::sort(moves->begin(), moves->end(), [b](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(b, m_1, m_2, nullptr, nullptr, false); });
 	for (Move* const& move : *moves) {
-		int score = Evaluator::score_move(b, move, nullptr, false);
+		int score = Evaluator::score_move(b, move, nullptr, nullptr, false);
 		b->make_move(move);
 		Movegen* gen = new Movegen(b);
 		int num_moves = gen->generate_moves(depth - 1);

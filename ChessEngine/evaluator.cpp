@@ -150,8 +150,8 @@ int Evaluator::evaluate(Board* b)
  * \param m_2 move 2
  * \return true if and only if move 1 & 2 are already in the correct respective order.
  */
-bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, bool left_most) {
-	return score_move(pos, m_1, pv_move, left_most) > score_move(pos, m_2, pv_move, left_most);
+bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most) {
+	return score_move(pos, m_1, pv_move, killer_moves_at_depth, left_most) > score_move(pos, m_2, pv_move, killer_moves_at_depth,left_most);
 
 }
 
@@ -204,11 +204,20 @@ int Evaluator::score_capture(Board* pos, Move* move) {
 	return pos->position[target]->value() - pos->position[origin]->value() + CAPTURE_SCORE;
 }
 
-int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, bool left_most) {
+int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most) {
 	int offset = 0;
 	if (left_most && pv_move != nullptr && move->equals(pv_move)) {
-		offset += PV_SCORE;
+		offset = PV_SCORE;
 		//std::cout << pv_move->to_string() << "\n";
+	}
+	else if (killer_moves_at_depth != nullptr) {
+		if (killer_moves_at_depth->at(0)->equals(move)) {
+			//std::cout << "here" << std::endl;
+			offset = KILLER_MOVE_ONE;
+		}
+		else if (killer_moves_at_depth->at(1)->equals(move)) {
+			offset = KILLER_MOVE_TWO;
+		}
 	}
 	if (move->is_capture) {
 		// score capture
