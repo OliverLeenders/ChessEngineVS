@@ -205,27 +205,26 @@ int Evaluator::score_capture(Board* pos, Move* move) {
 }
 
 int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most) {
-	int offset = 0;
-	if (left_most && pv_move != nullptr && move->equals(pv_move)) {
-		offset = PV_SCORE;
-		//std::cout << pv_move->to_string() << "\n";
-	}
-	else if (killer_moves_at_depth != nullptr) {
-		if (killer_moves_at_depth->at(0)->equals(move)) {
-			//std::cout << "here" << std::endl;
-			offset = KILLER_MOVE_ONE;
-		}
-		else if (killer_moves_at_depth->at(1)->equals(move)) {
-			offset = KILLER_MOVE_TWO;
-		}
-	}
+	
 	if (move->is_capture) {
 		// score capture
-		return score_capture(pos, move) + score_quiet_move(pos, move) + offset;
+		return score_capture(pos, move) + score_quiet_move(pos, move);
 	}
 	else {
 		// score quiet move
-		return score_quiet_move(pos, move) + offset;
+		if (left_most && pv_move != nullptr && move->equals(pv_move)) {
+			return PV_SCORE;
+		}
+		else if (killer_moves_at_depth != nullptr) {
+			if (killer_moves_at_depth->at(0)->equals(move)) {
+				return KILLER_MOVE_ONE;
+			}
+			else if (killer_moves_at_depth->at(1)->equals(move)) {
+				return KILLER_MOVE_TWO;
+			}
+		}
+		return score_quiet_move(pos, move);
+		//return 0;
 	}
 }
 int Evaluator::PawnTable[64] = {
