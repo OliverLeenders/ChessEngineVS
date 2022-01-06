@@ -117,6 +117,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			this->prev_pv->push_back(move->clone());
 			delete move;
 		}
+		delete PV;
 		// clearing the killer moves
 		for (std::vector<Move*>* const& v : *killer_moves) {
 			for (Move* const& move : *v) {
@@ -125,12 +126,14 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			delete v;
 		}
 		killer_moves->clear();
-		pos->transposition_table->clear();
+		pos->transposition_table->switch_prev();
 	}
 	for (Move* const& m : *this->prev_pv) {
 		delete m;
 	}
 	prev_pv->clear();
+	
+	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 }
 
@@ -192,13 +195,14 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			delete v;
 		}
 		killer_moves->clear();
-		pos->transposition_table->clear();
+		pos->transposition_table->switch_prev();
 		depth++;
 	}
 	for (Move* const& m : *this->prev_pv) {
 		delete m;
 	}
 	prev_pv->clear();
+	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->duration = std::chrono::milliseconds(INT32_MAX);
@@ -258,13 +262,16 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		if (prev_pv->size() > ply) {
 			pv_move = this->prev_pv->at(ply);
 		}
+		Move* prev_best = pos->transposition_table->probe_for_prev_best_move(pos->pos_hash);
+
 		std::vector<Move*>* killer_moves_at_depth = nullptr;
 		if (ply < killer_moves->size()) {
 			killer_moves_at_depth = killer_moves->at(ply);
 		}
 
-		std::stable_sort(moves->begin(), moves->end(), [pos, this, depth_left, ply, pv_move, killer_moves_at_depth, left_most](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, killer_moves_at_depth, left_most); });
-
+		std::stable_sort(moves->begin(), moves->end(),
+			[pos, this, depth_left, ply, pv_move, prev_best, killer_moves_at_depth, left_most]
+		(Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, prev_best, killer_moves_at_depth, left_most); });
 		bool is_check = pos->num_checks > 0;
 
 		if (pos->num_checks == 0 && depth_left >= 3) {
@@ -307,6 +314,9 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			}
 		}
 	next:
+		Move* best_move = nullptr;
+		int lower_bound = -VAL_UNKNOWN;
+
 		if (!draw_score) {
 			// create PV line
 			std::list<Move*>* line = new std::list<Move*>();
@@ -338,13 +348,18 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 					}
 				}
+				if (score > LOWER_BOUND) {
+					delete best_move;
+					best_move = move->clone();
+				}
 
 				// fail high -- beta cutoff
 				if (score >= beta)
 				{
 					pos->unmake_move();
 					if ((!move->is_capture) && ply < killer_moves->size()) {
-						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(1);
+						delete this->killer_moves->at(ply)->at(1);
+						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
 					// cleanup
@@ -359,6 +374,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					delete line;
 					delete moves;
 					pos->transposition_table->record_hash(pos->pos_hash, ply, beta, LOWER_BOUND, nullptr);
+					delete best_move;
 					return beta;
 					//  fail hard beta-cutoff
 				}
@@ -395,14 +411,11 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			}
 			delete moves;
 			delete line;
+
 		}
-		if (PV->size() > 0) {
-			Move* m = PV->front();
-			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, m);
-		}
-		else {
-			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, nullptr);
-		}
+
+		pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, best_move);
+		delete best_move;
 		return alpha;
 	}
 }
@@ -415,6 +428,10 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
  * @param e evaluator object
  * @return int evaluation
  */
+
+// BUG ALERT
+// position startpos moves d2d4 g8f6 c2c4 b8c6 b1c3 e7e5 d4d5 c6b4 a2a3 b4a6 e2e4 f8d6 f1e2 a6c5 c1g5 a7a5 g1f3 h8f8 e1g1 h7h6 g5f6 d8f6 b2b4 a5b4 a3b4 a8a1 d1a1 c5b3 a1b2 b3d4 c4c5 d6e7 f3d4 e7c5 b4c5 e5d4 c3a4 f6f4 e2f3 d7d6 c5d6
+
 int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 {
 	// increase node count
@@ -454,7 +471,8 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 	}
 
 
-	std::stable_sort(moves->begin(), moves->end(), [pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr,false); });
+	std::stable_sort(moves->begin(), moves->end(),
+		[pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr, nullptr, false); });
 	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{

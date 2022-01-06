@@ -22,7 +22,7 @@ Board::Board()
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
-	transposition_table = new zobrist_hashmap(1000000);
+	this->transposition_table = new zobrist_hashmap(1000000);
 	this->pos_hash = this->hash(this);
 }
 /**
@@ -50,7 +50,7 @@ Board::Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights)
 		this->checks[i] = false;
 	}
 	this->prev_pos = nullptr;
-	transposition_table = new zobrist_hashmap(10000000);
+	this->transposition_table = new zobrist_hashmap(1000000);
 	this->pos_hash = this->hash(this);
 }
 
@@ -322,7 +322,7 @@ Board::Board(std::string fen)
 
 
 	// iniitialize transposition table
-	transposition_table = new zobrist_hashmap(1000000);
+	this->transposition_table = new zobrist_hashmap(1000000);
 	this->pos_hash = this->hash(this);
 
 }
@@ -2789,7 +2789,7 @@ void Board::make_move(Move* m) {
 	bool is_promotion = m->is_promotion;
 	unsigned promotion_type = m->promotion_type;
 	//
-	
+
 	// managing stack
 
 	this->stack_moves->push_back(m);
@@ -2910,7 +2910,7 @@ void Board::make_move(Move* m) {
 	else if ((origin == 7 && this->position[origin]->get_type() == 5) || (target == 7 && this->position[target]->get_type() == 5)) {
 		this->castling_rights[0] = false;
 	}
-	else if ((origin == 56 && this->position[origin]->get_type() == 6) || (target == 56 && this->position[target]->get_type() == 6)) {
+	if ((origin == 56 && this->position[origin]->get_type() == 6) || (target == 56 && this->position[target]->get_type() == 6)) {
 		this->castling_rights[3] = false;
 	}
 	else if ((origin == 63 && this->position[origin]->get_type() == 6) || (target == 63 && this->position[target]->get_type() == 6)) {

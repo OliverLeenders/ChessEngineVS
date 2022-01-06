@@ -15,10 +15,10 @@ class Evaluator
 public:
 	Evaluator();
 	static int evaluate(Board* b);
-	static bool compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most);
+	static bool compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, Move* prev_best, std::vector<Move*>* killer_moves_at_depth, bool left_most);
 	static int mirror_vertical(int i);
 	static int score_quiet_move(Board* pos, Move *m);
-	static int score_move(Board* pos, Move* m, Move* pv_move, std::vector<Move*>* killer_moves_at_depth, bool left_most);
+	static int score_move(Board* pos, Move* m, Move* pv_move, Move* prev_best,  std::vector<Move*>* killer_moves_at_depth, bool left_most);
 	static int score_capture(Board* pos, Move* m);
 	~Evaluator();
 	static void init_tables();
