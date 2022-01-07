@@ -12,7 +12,8 @@ hash_entry::hash_entry(uint64_t set_key, int set_score, int set_ply, int set_fla
 hash_entry::hash_entry()
 {
 	this->key = 0;
-	this->score = 0;
+	this->ply = 0;
+	this->score = VAL_UNKNOWN;
 	this->flag = VAL_UNKNOWN;
 	this->best_move = nullptr;
 }

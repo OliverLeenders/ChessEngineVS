@@ -46,7 +46,6 @@ void Evaluator::init_tables() {
 
 int Evaluator::evaluate(Board* b)
 {
-	int e = 0;
 	// insufficient material
 	if (b->pawn_list->size() == 0 && b->queen_list->size() == 0 && b->rook_list->size() == 0) {
 		// std::cout << "insufficient material" << std::endl;
@@ -130,8 +129,10 @@ int Evaluator::evaluate(Board* b)
 	int game_phase = 4 * b->queen_list->size() + 2 * b->rook_list->size() + b->bishop_list->size() + b->knight_list->size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
-	e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
-
+	int e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
+	if (std::abs(e) == INT_MAX) {
+		std::cout << "error_eval" << std::endl;
+	}
 	if (b->white_to_move)
 	{
 		return e;

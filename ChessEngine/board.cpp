@@ -2807,7 +2807,7 @@ void Board::make_move(Move* m) {
 	this->stack_captures->push_back(this->position[target]->get_type());
 
 	this->stack_fifty->push_back(this->fifty_move_rule_counter);
-	this->full_move_counter--;
+	this->full_move_counter++;
 	if (is_capture || m->is_pawn_push) {
 		this->fifty_move_rule_counter = 0;
 	}
@@ -3043,6 +3043,7 @@ void Board::unmake_move() {
 	this->stack_en_passant_target_index->pop_back();
 
 	this->fifty_move_rule_counter = this->stack_fifty->back();
+	this->full_move_counter--;
 	this->stack_fifty->pop_back();
 
 	// unmake kingpos
