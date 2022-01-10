@@ -63,6 +63,7 @@ int Search::evaluate(Board* pos, unsigned int depth)
 		delete v;
 	}
 	killer_moves->clear();
+	pos->transposition_table->clear();
 	delete PV;
 	return res;
 }
@@ -317,7 +318,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		}
 	next:
 		Move* best_move = nullptr;
-		int lower_bound_score = -VAL_UNKNOWN;
+		int lower_bound_score = -INT_MAX;
 
 		if (!draw_score) {
 			// create PV line
@@ -365,6 +366,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
+					pos->transposition_table->record_hash(pos->pos_hash, ply, beta, LOWER_BOUND, best_move->clone());
 					// cleanup
 					for (Move* const& imove : *moves)
 					{
@@ -376,7 +378,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					}
 					delete line;
 					delete moves;
-					pos->transposition_table->record_hash(pos->pos_hash, ply, beta, LOWER_BOUND, nullptr);
+					
 					delete best_move;
 					return beta;
 					//  fail hard beta-cutoff
@@ -417,10 +419,11 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 
 		if (draw_score) {
 			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, nullptr);
+			delete best_move;
 			return 0;
 		}
 		else {
-			pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, best_move);
+			pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, best_move->clone());
 			delete best_move;
 			return alpha;
 		}

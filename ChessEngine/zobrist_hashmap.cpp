@@ -66,12 +66,10 @@ void zobrist_hashmap::clear() {
 void zobrist_hashmap::record_hash(uint64_t set_z_key, int set_ply, int set_score, int set_flag, Move* set_move) {
 	hash_entry* pos_hash_entry = &map[set_z_key % this->size];
 	pos_hash_entry->key = set_z_key;
-	if (set_move != nullptr) {
-		pos_hash_entry->best_move = set_move->clone();
+	if (pos_hash_entry->best_move != nullptr) {
+		delete pos_hash_entry->best_move;
 	}
-	else {
-		pos_hash_entry->best_move = nullptr;
-	}
+	pos_hash_entry->best_move = set_move;
 	pos_hash_entry->score = set_score;
 	pos_hash_entry->flag = set_flag;
 	pos_hash_entry->ply = set_ply;
