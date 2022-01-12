@@ -337,7 +337,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 				}
 				else {
-					if (i < 7) {
+					if (i < 5) {
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line, ply + 1, left_most && i == 0);
 					}
 					else {

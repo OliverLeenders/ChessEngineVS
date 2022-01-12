@@ -1,8 +1,6 @@
 #include "evaluator.h"
 #include <iostream>
 
-int Evaluator::mg_table[12][64] = { 0 };
-int Evaluator::eg_table[12][64] = { 0 };
 
 Evaluator::Evaluator() {
 	//init_tables();
@@ -16,31 +14,18 @@ int Evaluator::mirror_vertical(int i) {
 
 void Evaluator::init_tables() {
 	// kings 
-	for (int i = 0; i < 64; i++) {
-		mg_table[0][i] = KingTable[mirror_vertical(i)];
-		eg_table[0][i] = KingTableEndGame[mirror_vertical(i)];
-		mg_table[1][i] = KingTable[i];
-		eg_table[1][i] = KingTableEndGame[i];
-		mg_table[2][i] = QueenTable[mirror_vertical(i)];
-		eg_table[2][i] = QueenTableEndGame[mirror_vertical(i)];
-		mg_table[3][i] = QueenTable[i];
-		eg_table[3][i] = QueenTableEndGame[i];
-		mg_table[4][i] = RookTable[mirror_vertical(i)];
-		eg_table[4][i] = RookTableEndGame[mirror_vertical(i)];
-		mg_table[5][i] = RookTable[i];
-		eg_table[5][i] = RookTableEndGame[i];
-		mg_table[6][i] = BishopTable[mirror_vertical(i)];
-		eg_table[6][i] = BishopTableEndGame[mirror_vertical(i)];
-		mg_table[7][i] = BishopTable[i];
-		eg_table[7][i] = BishopTableEndGame[i];
-		mg_table[8][i] = KnightTable[mirror_vertical(i)];
-		eg_table[8][i] = KnightTableEndGame[mirror_vertical(i)];
-		mg_table[9][i] = KnightTable[i];
-		eg_table[9][i] = KnightTableEndGame[i];
-		mg_table[10][i] = PawnTable[mirror_vertical(i)];
-		eg_table[10][i] = PawnTableEndGame[mirror_vertical(i)];
-		mg_table[11][i] = PawnTable[i];
-		eg_table[11][i] = PawnTableEndGame[i];
+	int bonus_dia_distance[15] = { 5, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	for (int i = 0; i < 64; ++i) {
+		for (int j = 0; j < 64; ++j) {
+			distances_bonus[i][j] = 14 - (std::abs(i % 8 - j % 8) + std::abs(i / 8 - j / 8));
+			dist_queen_to_king[i][j] = (distances_bonus[i][j] * 5) / 2;
+			dist_rook_to_king[i][j] = distances_bonus[i][j] / 2;
+			dist_knight_to_king[i][j] = distances_bonus[i][j];
+			// bishop distances
+			dist_bishop_to_king[i][j] += bonus_dia_distance[std::abs(north_east_diagonal[i] - north_east_diagonal[j])];
+			dist_bishop_to_king[i][j] += bonus_dia_distance[std::abs(north_west_diagonal[i] - north_west_diagonal[j])];
+
+		}
 	}
 }
 
@@ -57,6 +42,38 @@ int Evaluator::evaluate(Board* b)
 	int mg_eval = 0;
 	int eg_eval = 0;
 
+	int mg_king_safety = 0;
+	int wkp = b->white_king_pos;
+	int bkp = b->black_king_pos;
+	if (wkp < 16) {
+		if (wkp % 8 != 7 && b->position[wkp + 9]->get_type() == 11) {
+			mg_king_safety += 20;
+		}
+		if (wkp % 8 != 0 && b->position[wkp + 7]->get_type() == 11) {
+			mg_king_safety += 20;
+		}
+		if (b->position[wkp + 8]->get_type() == 11) {
+			mg_king_safety += 35;
+		}
+	}
+	if (bkp >= 48) {
+		if (bkp % 8 != 7 && b->position[bkp - 7]->get_type() == 12) {
+			mg_king_safety -= 20;
+		}
+		if (bkp % 8 != 0 && b->position[bkp - 9]->get_type() == 12) {
+			mg_king_safety -= 20;
+		}
+		if (b->position[bkp - 8]->get_type() == 12) {
+			mg_king_safety -= 35;
+		}
+	}
+
+	mg_eval += mg_king_safety;
+	int white_king_tropism = 0;
+	int black_king_tropism = 0;
+	int black_material = 0;
+	int white_material = 0;
+
 	for (int i = 0; i < 64; i++) {
 		Piece* curr = b->position[i];
 		unsigned type = curr->get_type();
@@ -68,58 +85,75 @@ int Evaluator::evaluate(Board* b)
 		case 1:
 			mg_eval += mg_value[type] + KingTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + KingTableEndGame[mirror_vertical(i)];
-			//std::cout << KingTable[mirror_vertical(i)] << "\n";
+			white_material += mg_value[type];
 			break;
 		case 2:
 			mg_eval -= mg_value[type] + KingTable[i];
 			eg_eval -= eg_value[type] + KingTableEndGame[i];
-			//std::cout << KingTable[i] << "\n";
+			black_material += mg_value[type];
 			break;
 			// queen
-
 		case 3:
 			mg_eval += mg_value[type] + QueenTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + QueenTableEndGame[mirror_vertical(i)];
+			black_king_tropism += dist_queen_to_king[i][bkp];
+			white_material += mg_value[type];
 			break;
 		case 4:
 			mg_eval -= mg_value[type] + QueenTable[i];
 			eg_eval -= eg_value[type] + QueenTableEndGame[i];
+			white_king_tropism += dist_queen_to_king[i][wkp];
+			black_material += mg_value[type];
 			break;
 			// rook
 		case 5:
 			mg_eval += mg_value[type] + RookTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + RookTableEndGame[mirror_vertical(i)];
+			black_king_tropism += dist_rook_to_king[i][bkp];
+			white_material += mg_value[type];
 			break;
 		case 6:
 			mg_eval -= mg_value[type] + RookTable[i];
 			eg_eval -= eg_value[type] + RookTableEndGame[i];
+			white_king_tropism += dist_rook_to_king[i][wkp];
+			black_material += mg_value[type];
 			break;
 			// bishop
 		case 7:
 			mg_eval += mg_value[type] + BishopTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + BishopTableEndGame[mirror_vertical(i)];
+			black_king_tropism += dist_bishop_to_king[i][bkp];
+			white_material += mg_value[type];
 			break;
 		case 8:
 			mg_eval -= mg_value[type] + BishopTable[i];
 			eg_eval -= eg_value[type] + BishopTableEndGame[i];
+			white_king_tropism += dist_bishop_to_king[i][wkp];
+			black_material += mg_value[type];
 			break;
 			// knight
 		case 9:
 			mg_eval += mg_value[type] + KnightTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + KnightTableEndGame[mirror_vertical(i)];
+			black_king_tropism += dist_knight_to_king[i][bkp];
+			white_material += mg_value[type];
 			break;
 		case 10:
 			mg_eval -= mg_value[type] + KnightTable[i];
 			eg_eval -= eg_value[type] + KnightTableEndGame[i];
+			white_king_tropism += dist_knight_to_king[i][wkp];
+			black_material += mg_value[type];
 			break;
 			// pawn
 		case 11:
 			mg_eval += mg_value[type] + PawnTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + PawnTableEndGame[mirror_vertical(i)];
+			white_material += mg_value[type];
 			break;
 		case 12:
 			mg_eval -= mg_value[type] + PawnTable[i];
 			eg_eval -= eg_value[type] + PawnTableEndGame[i];
+			black_material += mg_value[type];
 			break;
 		default:
 			break;
@@ -130,9 +164,7 @@ int Evaluator::evaluate(Board* b)
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
 	int e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
-	if (std::abs(e) == INT_MAX) {
-		std::cout << "error_eval" << std::endl;
-	}
+	e + ((black_king_tropism / white_material) - (white_king_tropism / black_material)) * INITIAL_MATERIAL_VALUE;
 	if (b->white_to_move)
 	{
 		return e;
@@ -170,9 +202,15 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	{
 	case 1:
 	{
+		if (std::abs(target - origin) == 2) {
+			return 500;
+		}
 		return  KingTable[target] - KingTable[origin];
 	}
 	case 2:
+		if (std::abs(target - origin) == 2) {
+			return 500;
+		}
 		return KingTable[target] - KingTable[origin];
 	case 3:
 		return QueenTable[target] - QueenTable[origin];
@@ -230,6 +268,37 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best
 		return score_quiet_move(pos, move);
 	}
 }
+
+// distance tables for tropism
+int Evaluator::distances_bonus[64][64] = { 0 };
+int Evaluator::dist_queen_to_king[64][64] = { 0 };
+int Evaluator::dist_rook_to_king[64][64] = { 0 };
+int Evaluator::dist_knight_to_king[64][64] = { 0 };
+int Evaluator::dist_bishop_to_king[64][64] = { 0 };
+
+int Evaluator::north_west_diagonal[64] = {
+   0, 1, 2, 3, 4, 5, 6, 7,
+   1, 2, 3, 4, 5, 6, 7, 8,
+   2, 3, 4, 5, 6, 7, 8, 9,
+   3, 4, 5, 6, 7, 8, 9,10,
+   4, 5, 6, 7, 8, 9,10,11,
+   5, 6, 7, 8, 9,10,11,12,
+   6, 7, 8, 9,10,11,12,13,
+   7, 8, 9,10,11,12,13,14
+};
+
+int Evaluator::north_east_diagonal[64] = {
+   7, 6, 5, 4, 3, 2, 1, 0,
+   8, 7, 6, 5, 4, 3, 2, 1,
+   9, 8, 7, 6, 5, 4, 3, 2,
+  10, 9, 8, 7, 6, 5, 4, 3,
+  11,10, 9, 8, 7, 6, 5, 4,
+  12,11,10, 9, 8, 7, 6, 5,
+  13,12,11,10, 9, 8, 7, 6,
+  14,13,12,11,10, 9, 8, 7
+};
+
+// piece square tables ...
 int Evaluator::PawnTable[64] = {
 	  0,   0,   0,   0,   0,   0,  0,   0,
 	 98, 134,  61,  95,  68, 126, 34, -11,

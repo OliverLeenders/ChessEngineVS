@@ -24,8 +24,8 @@ public:
 	static void init_tables();
 
 private:
-	static int mg_table[12][64];
-	static int eg_table[12][64];
+	static const int INITIAL_MATERIAL_VALUE = 4572;
+	
 	static int PawnTable[64];
 	static int PawnTableEndGame[64];
 	static int KnightTable[64];
@@ -41,5 +41,13 @@ private:
 	static int game_phase_inc[13];
 	static int mg_value[13]; 
 	static int eg_value[13];
+	static int distances_bonus[64][64];
+	static int dist_queen_to_king[64][64];
+	static int dist_rook_to_king[64][64];
+	static int dist_knight_to_king[64][64];
+	static int dist_bishop_to_king[64][64];
+	static int north_west_diagonal[64];
+	static int north_east_diagonal[64];
+
 
 };
