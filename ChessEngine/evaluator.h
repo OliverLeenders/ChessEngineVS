@@ -9,6 +9,7 @@ constexpr int PV_SCORE = 300000;
 constexpr int CAPTURE_SCORE = 200000;
 constexpr int KILLER_MOVE_ONE = 100000;
 constexpr int KILLER_MOVE_TWO = 90000;
+constexpr int HISTORY_MOVE_OFFSET = 1000;
 
 class Evaluator
 {
@@ -22,12 +23,16 @@ public:
 	static int score_capture(Board* pos, Move* m);
 	~Evaluator();
 	static void init_tables();
+	static void reset_history();
+	static int history[12][64];
 
 private:
 	static const int INITIAL_MATERIAL_VALUE = 4572;
 	
+	
 	static int PawnTable[64];
 	static int PawnTableEndGame[64];
+	static int PawnTableEndGameMO[64];
 	static int KnightTable[64];
 	static int KnightTableEndGame[64];
 	static int BishopTable[64];

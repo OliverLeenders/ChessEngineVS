@@ -25,7 +25,15 @@ int zobrist_hashmap::probe_hash(uint64_t z_key, int ply, int alpha, int beta)
 	if (pos_hash_entry->key == z_key) {
 		if (pos_hash_entry->ply <= ply) {
 			if (pos_hash_entry->flag == EXACT_SCORE) {
-				return pos_hash_entry->score;
+				// TODO calc mate distance
+				int score = pos_hash_entry->score;
+				if (std::abs(score) >= 900000) {
+					//std::cout << "score: " << score << " = m " << (1000000 - std::abs(score) + 1) / 2 << " at ply: " << ply << " => " << score - Utility::sgn(score) * ply << std::endl;
+					return score - Utility::sgn(score) * ply;
+				}
+				else {
+					return score;
+				}
 			}
 			if (pos_hash_entry->flag == UPPER_BOUND && pos_hash_entry->score <= alpha) {
 				return alpha;

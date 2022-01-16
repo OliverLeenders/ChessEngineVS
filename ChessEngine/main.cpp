@@ -176,7 +176,7 @@ void uci_console() {
 						if (split->size() > 3) {
 							if ((*split)[2] == "moves") {
 								for (int i = 3; i < split->size(); i++) {
-									//sstd::cout << (*split)[i] << std::endl;
+									//std::cout << (*split)[i] << std::endl;
 									Move* m = new Move((*split)[i], i % 2, false, false);
 									if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
 										m->is_capture = true;

@@ -73,7 +73,8 @@ int Evaluator::evaluate(Board* b)
 	int black_king_tropism = 0;
 	int black_material = 0;
 	int white_material = 0;
-
+	int eg_tropism_w = 0;
+	int eg_tropism_b = 0;
 	for (int i = 0; i < 64; i++) {
 		Piece* curr = b->position[i];
 		unsigned type = curr->get_type();
@@ -85,11 +86,13 @@ int Evaluator::evaluate(Board* b)
 		case 1:
 			mg_eval += mg_value[type] + KingTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + KingTableEndGame[mirror_vertical(i)];
+			eg_tropism_w += 2 * distances_bonus[i][bkp];
 			white_material += 1;
 			break;
 		case 2:
 			mg_eval -= mg_value[type] + KingTable[i];
 			eg_eval -= eg_value[type] + KingTableEndGame[i];
+			eg_tropism_b += 2 * distances_bonus[i][wkp];
 			black_material += 1;
 			break;
 			// queen
@@ -167,7 +170,8 @@ int Evaluator::evaluate(Board* b)
 		std::cout << b->pos_as_str() << std::endl;
 	}
 	int e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
-	e += (((black_king_tropism + white_king_safety) / white_material) - ((white_king_tropism + black_king_safety) / black_material)) * INITIAL_MATERIAL_VALUE;
+	e += (((black_king_tropism + white_king_safety) * white_material) - ((white_king_tropism + black_king_safety) * black_material)) / INITIAL_MATERIAL_VALUE;
+	e += ((eg_tropism_w * (INITIAL_MATERIAL_VALUE - white_material)) - (eg_tropism_b * (INITIAL_MATERIAL_VALUE - black_material))) / INITIAL_MATERIAL_VALUE;
 	if (b->white_to_move)
 	{
 		return e;
@@ -206,6 +210,9 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	int game_phase = 4 * pos->queen_list->size() + 2 * pos->rook_list->size() + pos->bishop_list->size() + pos->knight_list->size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
+
+	int wkp = pos->white_king_pos;
+	int bkp = pos->black_king_pos;
 	switch (type)
 	{
 	case 1:
@@ -225,9 +232,11 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	case 4:
 		return ((QueenTable[target] - QueenTable[origin]) * mg_phase + (QueenTableEndGame[target] - QueenTableEndGame[origin]) * eg_phase) / 24;
 	case 5:
-		return ((RookTable[target] - RookTable[origin]) * mg_phase + (RookTableEndGame[target] - RookTableEndGame[origin]) * eg_phase) / 24;
+		return ((RookTable[target] - RookTable[origin]) * mg_phase 
+			+ (RookTableEndGame[target] - RookTableEndGame[origin]) * eg_phase) / 24;
 	case 6:
-		return ((RookTable[target] - RookTable[origin]) * mg_phase + (RookTableEndGame[target] - RookTableEndGame[origin]) * eg_phase) / 24;
+		return ((RookTable[target] - RookTable[origin]) * mg_phase 
+			+ (RookTableEndGame[target] - RookTableEndGame[origin]) * eg_phase) / 24;
 	case 7:
 		return ((BishopTable[target] - BishopTable[origin]) * mg_phase + (BishopTableEndGame[target] - BishopTableEndGame[origin]) * eg_phase) / 24;
 	case 8:
@@ -237,9 +246,9 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	case 10:
 		return ((KnightTable[target] - KnightTable[origin]) * mg_phase + (KnightTableEndGame[target] - KnightTableEndGame[origin]) * eg_phase) / 24;
 	case 11:
-		return ((PawnTable[target] - PawnTable[origin]) * mg_phase + (PawnTableEndGame[target] - PawnTableEndGame[origin]) * eg_phase) / 24;
+		return ((PawnTable[target] - PawnTable[origin]) * mg_phase + (PawnTableEndGameMO[target] - PawnTableEndGameMO[origin]) * eg_phase) / 24;
 	case 12:
-		return ((PawnTable[target] - PawnTable[origin]) * mg_phase + (PawnTableEndGame[target] - PawnTableEndGame[origin]) * eg_phase) / 24;
+		return ((PawnTable[target] - PawnTable[origin]) * mg_phase + (PawnTableEndGameMO[target] - PawnTableEndGameMO[origin]) * eg_phase) / 24;
 	default:
 		return 0;
 	}
@@ -273,7 +282,19 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best
 				return KILLER_MOVE_TWO;
 			}
 		}
+		int history_val = Evaluator::history[pos->position[move->origin]->get_type() - 1][move->target];
+		if (history_val > 0) {
+			return history_val + HISTORY_MOVE_OFFSET;
+		}
 		return score_quiet_move(pos, move);
+	}
+}
+
+void Evaluator::reset_history() {
+	for (int i = 0; i < 12; i++) {
+		for (int j = 0; j < 64; j++) {
+			history[i][j] = 0;
+		}
 	}
 }
 
@@ -283,6 +304,8 @@ int Evaluator::dist_queen_to_king[64][64] = { 0 };
 int Evaluator::dist_rook_to_king[64][64] = { 0 };
 int Evaluator::dist_knight_to_king[64][64] = { 0 };
 int Evaluator::dist_bishop_to_king[64][64] = { 0 };
+
+int Evaluator::history[12][64] = { 0 };
 
 int Evaluator::north_west_diagonal[64] = {
    0, 1, 2, 3, 4, 5, 6, 7,
@@ -328,6 +351,19 @@ int Evaluator::PawnTableEndGame[64] = {
 	 13,   8,   8,  10,  13,   0,   2,  -7,
 	  0,   0,   0,   0,   0,   0,   0,   0,
 };
+
+
+int Evaluator::PawnTableEndGameMO[64] = {
+	  0,   0,   0,   0,   0,   0,   0,   0,
+	200, 240, 240, 240, 240, 240, 240, 200,
+	100, 120, 120, 120, 120, 120, 120, 100,
+	 70,  80,  80,  80,  80,  80,  80,  70,
+	 35,  40,  40,  40,  40,  40,  40,  35,
+	 25,  27,  27,  27,  27,  27,  27,  25,
+	 13,  15,  15,  15,  15,  15,  15,  13,
+	  0,   0,   0,   0,   0,   0,   0,   0,
+};
+
 
 int Evaluator::KnightTable[64] = {
 	-167, -89, -34, -49,  61, -97, -15, -107,

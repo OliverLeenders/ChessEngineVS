@@ -31,7 +31,7 @@ public:
 
 	std::vector<Move*>* prev_pv = new std::vector<Move*>();
 	std::vector<std::vector<Move*>*>* killer_moves = new std::vector<std::vector<Move*>*>();
-
+	
 	int alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, int ply, bool left_most);
 	int quiescence(Board* pos, int alpha, int beta, int ply);
 	int evaluate_iterative_deepening(Board* pos, unsigned int depth);
