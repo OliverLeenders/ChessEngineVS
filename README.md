@@ -20,3 +20,18 @@ Moved from ChessEngine repo which was compiled using gcc for linux, to new repo 
 ## Roadmap
 * uci console (already partially implemented) -- supports ```go depth``` and ```go movetime```
 * Zobrist hashing speedup in make move
+
+## usage
+
+### entering a position 
+
+The engine understands the following commands:
+```position startpos``` -- sets the default starting position
+```position fen <fen string here>``` -- sets the position according to an fen string
+
+### Calculating
+
+```go movetime <number of milliseconds>``` -- search n milliseconds
+```go depth <depth>``` -- search to depth n
+```stop``` -- stop calculating
+```quit``` -- exit program
