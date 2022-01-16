@@ -3,6 +3,8 @@
  * @brief Construct a new Search:: Search object
  *
  */
+
+
 Search::Search()
 {
 }
@@ -79,8 +81,9 @@ int Search::evaluate(Board* pos, unsigned int depth)
 int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 {
 	std::string best_move = "NOMOVE";
+	stop_now = false;
 	int res = 0;
-	for (int i = 1; i <= depth; i++) {
+	for (int i = 1; i <= depth && (!stop_now); i++) {
 		this->search_depth = depth;
 		this->node_count = 0;
 		std::list<Move*>* PV = new std::list<Move*>;
@@ -92,23 +95,25 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		}
 
 		res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
-		if (std::abs(res) < EVAL_SCORE_CUTOFF) {
-			std::cout << "info score cp " << res;
-		}
-		else {
-			std::cout << "info score mate " << Utility::sgn(res) * (MATE_IN_ZERO - std::abs(res) + 1) / 2;
-		}
-		std::cout << " pv ";
-		for (Move* const& move : *PV)
-		{
-			std::cout << move->to_string() << " ";
-		}
-		std::cout << "nodes " << this->node_count;
-		std::cout << " depth " << i;
+		if (!stop_now) {
+			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
+				std::cout << "info score cp " << res;
+			}
+			else {
+				std::cout << "info score mate " << Utility::sgn(res) * (MATE_IN_ZERO - std::abs(res) + 1) / 2;
+			}
+			std::cout << " pv ";
+			for (Move* const& move : *PV)
+			{
+				std::cout << move->to_string() << " ";
+			}
+			std::cout << "nodes " << this->node_count;
+			std::cout << " depth " << i;
 
-		std::cout << std::endl;
+			std::cout << std::endl;
 
-		best_move = PV->front()->to_string();
+			best_move = PV->front()->to_string();
+		}
 		for (Move* const& move : *this->prev_pv) {
 			delete move;
 		}
@@ -136,12 +141,14 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	
 	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
+	this->stop_now = true;
 	return res;
 }
 
 int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 {
 	std::string best_move = "NOMOVE";
+	stop_now = false;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->duration = std::chrono::milliseconds(ms);
 	int depth = 1;
@@ -161,7 +168,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 
 		res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
 		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-		if (now - this->start_time < this->duration) {
+		if ((!stop_now) && now - this->start_time < this->duration) {
 			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 				std::cout << "info score cp " << res;
 			}
@@ -209,13 +216,14 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->duration = std::chrono::milliseconds(INT32_MAX);
+	this->stop_now = true;
 	return res;
 }
 
 int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, int ply, bool left_most)
 {
 	std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-	if (now - this->start_time >= this->duration) {
+	if (stop_now ||now - this->start_time >= this->duration) {
 		return 0;
 	}
 	// initializing hash flag
@@ -301,7 +309,12 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		bool draw_score = false;
 		// check for threefold repetition
 		int repetition_counter = 0;
-
+		// check 50-move rule
+		if (pos->fifty_move_rule_counter == 100) {
+			draw_score = true;
+			goto next;
+		}
+		
 		// iterate backwards through moves stack
 		for (size_t history_index = pos->stack_moves->size() - 1; history_index != SIZE_MAX; history_index--) {
 			if (pos->stack_moves->at(history_index)->is_capture || pos->stack_moves->at(history_index)->is_pawn_push) {

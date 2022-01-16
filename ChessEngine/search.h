@@ -10,6 +10,8 @@
 #include "utility.h"
 
 #include <chrono>
+#include <atomic>
+#include <thread>
 
 constexpr int EVAL_SCORE_CUTOFF = 900000;
 constexpr int MATE_IN_ZERO = 1000000;
@@ -21,6 +23,8 @@ public:
 	int node_count = 0;
 	int evaluate(Board* pos, unsigned int depth);
 	int search_depth = 0;
+
+	std::atomic<bool> stop_now = false;
 
 	std::chrono::milliseconds start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	std::chrono::milliseconds duration = std::chrono::milliseconds(INT32_MAX);

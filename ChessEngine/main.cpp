@@ -17,6 +17,7 @@
 #include <vector>
 #include <iostream>
 
+
 // function definitions
 
 void perft(Board* b, int depth);
@@ -80,28 +81,27 @@ void perft(Board* b, int depth) {
 	delete moves;
 }
 
+
 /**
  * Search driving function.
  *
  * \param b position to search
  * \param depth depth to search to
  */
-void search(Board* b, int depth) {
-	Search* s = new Search();
-	s->evaluate_iterative_deepening(b, depth);
-	delete s;
+void search(Board* b, int depth, std::thread* search_thread, Search* s) {
+	search_thread = new std::thread(&Search::evaluate_iterative_deepening, s, b, depth);
+	search_thread->detach();
 }
 
-void search_time(Board* b, int time_ms) {
-	Search* s = new Search();
-	s->evaluate_iterative_deepening_time(b, time_ms);
-	delete s;
+
+
+void search_time(Board* b, int time_ms, std::thread* search_thread, Search* s) {
+	search_thread = new std::thread(&Search::evaluate_iterative_deepening_time, s, b, time_ms);
+	search_thread->detach();
 }
 
-void ni_search(Board* b, int depth) {
-	Search* s = new Search();
+void ni_search(Board* b, int depth, Search* s) {	
 	s->evaluate(b, depth);
-	delete s;
 }
 
 /**
@@ -112,6 +112,10 @@ void uci_console() {
 	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	Evaluator::init_tables();
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
+	bool is_calculating = false;
+	bool has_just_finished = false;
+	std::thread* search_thread = new std::thread();
+	Search* s = new Search();
 	while (true) {
 		std::string line = "";
 		std::getline(std::cin, line);
@@ -119,6 +123,12 @@ void uci_console() {
 		Utility::split_string(split, line);
 
 		if (split->size() != 0) {
+			if (is_calculating) {
+				if ((*split)[0] == "stop") {
+					s->stop_now = true;
+				}
+				is_calculating = false;
+			}
 			if ((*split)[0] == "quit") {
 				split->clear();
 				delete split;
@@ -158,12 +168,15 @@ void uci_console() {
 			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
+					//std::cout << "pos set" << std::endl;
 					if ((*split)[1] == "startpos") {
+						//std::cout << "initial pos" << std::endl;
 						delete board;
 						board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 						if (split->size() > 3) {
 							if ((*split)[2] == "moves") {
 								for (int i = 3; i < split->size(); i++) {
+									//sstd::cout << (*split)[i] << std::endl;
 									Move* m = new Move((*split)[i], i % 2, false, false);
 									if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
 										m->is_capture = true;
@@ -221,22 +234,27 @@ void uci_console() {
 					else if ((*split)[1] == "depth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							search(board, depth);
+							is_calculating = true;
+							search(board, depth, search_thread, s);
 						}
+					}
+					else if ((*split)[1] == "infinite") {
+						is_calculating = true;
+						search(board, 256, search_thread, s);
 					}
 					else if ((*split)[1] == "nidepth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							ni_search(board, depth);
+							ni_search(board, depth, s);
 						}
 					}
 					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
-						ni_search(board, 5);
+						ni_search(board, 5, s);
 					}
 					else if ((*split)[1] == "movetime") {
 						if (split->size() == 3) {
 							int time_ms = std::stoi((*split)[2]);
-							search_time(board, time_ms);
+							search_time(board, time_ms, search_thread, s);
 						}
 					}
 
@@ -256,6 +274,8 @@ void uci_console() {
 		}
 		delete split;
 	}
+	delete s;
+	delete search_thread;
 	delete board;
 }
 

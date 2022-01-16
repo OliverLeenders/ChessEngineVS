@@ -1120,7 +1120,7 @@ void Board::compute_pin_rays()
 		exists_pin = false;
 		exists_check = false;
 		pin_index = -1;
-		for (int i = king_pos - 9; i % 8 != 7 && i > 0; i -= 9)
+		for (int i = king_pos - 9; i % 8 != 7 && i >= 0; i -= 9)
 		{
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
@@ -1223,14 +1223,14 @@ void Board::compute_pin_rays()
 		}
 		if (exists_pin)
 		{
-			for (int i = pin_index; i % 8 < 7 && i > 0 && this->position[i]->get_type() != 1; i -= 7)
+			for (int i = pin_index; i % 8 < 7 && i >= 0 && this->position[i]->get_type() != 1; i -= 7)
 			{
 				this->pins[i] = 6;
 			}
 		}
 		else if (exists_check)
 		{
-			for (int i = pin_index; i % 8 < 7 && i > 0 && this->position[i]->get_type() != 1; i -= 7)
+			for (int i = pin_index; i % 8 < 7 && i >= 0 && this->position[i]->get_type() != 1; i -= 7)
 			{
 				this->checks[i] = true;
 			}
@@ -1283,14 +1283,14 @@ void Board::compute_pin_rays()
 		}
 		if (exists_pin)
 		{
-			for (int i = pin_index; i % 8 > 0 && i > 0 && this->position[i]->get_type() != 1; i -= 9)
+			for (int i = pin_index; i % 8 > 0 && i >= 0 && this->position[i]->get_type() != 1; i -= 9)
 			{
 				this->pins[i] = 7;
 			}
 		}
 		else if (exists_check)
 		{
-			for (int i = pin_index; i % 8 > 0 && i > 0 && this->position[i]->get_type() != 1; i -= 9)
+			for (int i = pin_index; i % 8 > 0 && i >= 0 && this->position[i]->get_type() != 1; i -= 9)
 			{
 				this->checks[i] = true;
 			}
@@ -1300,7 +1300,7 @@ void Board::compute_pin_rays()
 		exists_pin = false;
 		exists_check = false;
 		pin_index = -1;
-		for (int i = king_pos - 7; i % 8 != 0 && i > 0; i -= 7)
+		for (int i = king_pos - 7; i % 8 != 0 && i >= 0; i -= 7)
 		{
 			if (comrad_on_ray && this->position[i]->is_white())
 			{
@@ -1365,7 +1365,7 @@ void Board::compute_pin_rays()
 		int pin_index = -1;
 		bool exists_check = false;
 
-		for (int i = king_pos - 1; i > 0 && i % 8 != 7; i--)
+		for (int i = king_pos - 1; i >= 0 && i % 8 != 7; i--)
 		{
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
@@ -1425,7 +1425,7 @@ void Board::compute_pin_rays()
 		exists_pin = false;
 		exists_check = false;
 		pin_index = -1;
-		for (int i = king_pos + 1; i % 8 != 0; i++)
+		for (int i = king_pos + 1; i < 64 && i % 8 != 0; i++)
 		{
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
@@ -1468,14 +1468,14 @@ void Board::compute_pin_rays()
 		}
 		if (exists_pin)
 		{
-			for (int i = pin_index; i > 0 && this->position[i]->get_type() != 2; i--)
+			for (int i = pin_index; i >= 0 && this->position[i]->get_type() != 2; i--)
 			{
 				this->pins[i] = 2;
 			}
 		}
 		else if (exists_check)
 		{
-			for (int i = pin_index; i > 0 && this->position[i]->get_type() != 2; i--)
+			for (int i = pin_index; i >= 0 && this->position[i]->get_type() != 2; i--)
 			{
 				this->checks[i] = true;
 			}
@@ -1605,7 +1605,7 @@ void Board::compute_pin_rays()
 		exists_pin = false;
 		exists_check = false;
 		pin_index = -1;
-		for (int i = king_pos - 9; i % 8 != 7 && i > 0; i -= 9)
+		for (int i = king_pos - 9; i % 8 != 7 && i >= 0; i -= 9)
 		{
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
@@ -1708,14 +1708,14 @@ void Board::compute_pin_rays()
 		}
 		if (exists_pin)
 		{
-			for (int i = pin_index; i % 8 < 7 && i > 0 && this->position[i]->get_type() != 2; i -= 7)
+			for (int i = pin_index; i % 8 < 7 && i >= 0 && this->position[i]->get_type() != 2; i -= 7)
 			{
 				this->pins[i] = 6;
 			}
 		}
 		else if (exists_check)
 		{
-			for (int i = pin_index; i % 8 < 7 && i > 0 && this->position[i]->get_type() != 2; i -= 7)
+			for (int i = pin_index; i % 8 < 7 && i >= 0 && this->position[i]->get_type() != 2; i -= 7)
 			{
 				this->checks[i] = true;
 			}
@@ -1768,14 +1768,14 @@ void Board::compute_pin_rays()
 		}
 		if (exists_pin)
 		{
-			for (int i = pin_index; i % 8 > 0 && i > 0 && this->position[i]->get_type() != 2; i -= 9)
+			for (int i = pin_index; i % 8 > 0 && i >= 0 && this->position[i]->get_type() != 2; i -= 9)
 			{
 				this->pins[i] = 7;
 			}
 		}
 		else if (exists_check)
 		{
-			for (int i = pin_index; i % 8 > 0 && i > 0 && this->position[i]->get_type() != 2; i -= 9)
+			for (int i = pin_index; i % 8 > 0 && i >= 0 && this->position[i]->get_type() != 2; i -= 9)
 			{
 				this->checks[i] = true;
 			}
@@ -1785,7 +1785,7 @@ void Board::compute_pin_rays()
 		exists_pin = false;
 		exists_check = false;
 		pin_index = -1;
-		for (int i = king_pos - 7; i % 8 != 0 && i > 0; i -= 7)
+		for (int i = king_pos - 7; i % 8 != 0 && i >= 0; i -= 7)
 		{
 			if (comrad_on_ray && this->position[i]->is_black())
 			{
@@ -2290,7 +2290,7 @@ void Board::add_rook_moves(std::vector<Move*>* moves, int i)
 {
 	if (this->pins[i] < 3)
 	{
-		for (int j = i + 1; j % 8 != 0 && i % 8 != 7 && j <= 63; j++)
+		for (int j = i + 1; j % 8 != 0 && i % 8 != 7 && j < 64; j++)
 		{
 			if (this->position[j]->is_empty())
 			{
