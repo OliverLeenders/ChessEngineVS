@@ -29,7 +29,7 @@ public:
 private:
 	static const int INITIAL_MATERIAL_VALUE = 4572;
 	
-	
+	static int open_files[2][8];
 	static int PawnTable[64];
 	static int PawnTableEndGame[64];
 	static int PawnTableEndGameMO[64];

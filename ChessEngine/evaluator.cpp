@@ -42,6 +42,16 @@ int Evaluator::evaluate(Board* b)
 	int mg_eval = 0;
 	int eg_eval = 0;
 
+	// initialize open_files 
+	for (int i = 0; i < 8; i++) {
+		open_files[0][i] = 0;
+		open_files[1][i] = 0;
+	}
+	// compute open files
+	for (int i : *b->pawn_list) {
+		open_files[b->position[i]->is_black()][i % 8]++;
+	}
+
 	int white_king_safety = 0;
 	int black_king_safety = 0;
 	int wkp = b->white_king_pos;
@@ -75,6 +85,9 @@ int Evaluator::evaluate(Board* b)
 	int white_material = 0;
 	int eg_tropism_w = 0;
 	int eg_tropism_b = 0;
+	bool half_open = false;
+	bool full_open = false;
+	bool full_open_with_king = false;
 	for (int i = 0; i < 64; i++) {
 		Piece* curr = b->position[i];
 		unsigned type = curr->get_type();
@@ -111,12 +124,20 @@ int Evaluator::evaluate(Board* b)
 			// rook
 		case 5:
 			mg_eval += mg_value[type] + RookTable[mirror_vertical(i)];
+			half_open = open_files[0][i % 8] == 0;
+			full_open = half_open && open_files[1][i % 8];
+			full_open_with_king = full_open && bkp % 8 == i % 8;
+			mg_eval += 5 * half_open + 5 * full_open + 10 * full_open_with_king;
 			eg_eval += eg_value[type] + RookTableEndGame[mirror_vertical(i)];
 			black_king_tropism += dist_rook_to_king[i][bkp];
 			white_material += mg_value[type];
 			break;
 		case 6:
 			mg_eval -= mg_value[type] + RookTable[i];
+			half_open = open_files[1][i % 8] == 0;
+			full_open = half_open && open_files[0][i % 8];
+			full_open_with_king = full_open && wkp % 8 == i % 8;
+			mg_eval -= 5 * half_open + 5 * full_open + 10 * full_open_with_king;
 			eg_eval -= eg_value[type] + RookTableEndGame[i];
 			white_king_tropism += dist_rook_to_king[i][wkp];
 			black_material += mg_value[type];
@@ -172,6 +193,13 @@ int Evaluator::evaluate(Board* b)
 	int e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
 	e += (((black_king_tropism + white_king_safety) * white_material) - ((white_king_tropism + black_king_safety) * black_material)) / INITIAL_MATERIAL_VALUE;
 	e += ((eg_tropism_w * (INITIAL_MATERIAL_VALUE - white_material)) - (eg_tropism_b * (INITIAL_MATERIAL_VALUE - black_material))) / INITIAL_MATERIAL_VALUE;
+	
+	// punish double pawns
+	for (int j = 0; j < 8; j++) {
+		e -= (std::max(0, open_files[0][j] - 1)) * 25;
+		e += (std::max(0, open_files[1][j] - 1)) * 25;
+	}
+
 	if (b->white_to_move)
 	{
 		return e;
@@ -306,6 +334,7 @@ int Evaluator::dist_knight_to_king[64][64] = { 0 };
 int Evaluator::dist_bishop_to_king[64][64] = { 0 };
 
 int Evaluator::history[12][64] = { 0 };
+int Evaluator::open_files[2][8] = { 0 };
 
 int Evaluator::north_west_diagonal[64] = {
    0, 1, 2, 3, 4, 5, 6, 7,
