@@ -21,6 +21,7 @@ private:
      * pawn black:      12
      */
 public:
+    Piece();
     Piece(unsigned set_type);
     char piece_to_char();
     int set_piece_type(unsigned t);

@@ -50,7 +50,7 @@ int Evaluator::evaluate(Board* b)
 	}
 	// compute open files
 	for (int const& i : *b->pawn_list) {
-		open_files[b->position[i]->is_black()][i % 8]++;
+		open_files[b->position[i].is_black()][i % 8]++;
 	}
 
 	int white_king_safety = 0;
@@ -58,24 +58,24 @@ int Evaluator::evaluate(Board* b)
 	int wkp = b->white_king_pos;
 	int bkp = b->black_king_pos;
 	if (wkp <= 2 || (wkp >= 6 && wkp < 8)) {
-		if (wkp % 8 != 7 && b->position[wkp + 9]->get_type() == 11) {
+		if (wkp % 8 != 7 && b->position[wkp + 9].get_type() == 11) {
 			white_king_safety += 15;
 		}
-		if (wkp % 8 != 0 && b->position[wkp + 7]->get_type() == 11) {
+		if (wkp % 8 != 0 && b->position[wkp + 7].get_type() == 11) {
 			white_king_safety += 15;
 		}
-		if (b->position[wkp + 8]->get_type() == 11) {
+		if (b->position[wkp + 8].get_type() == 11) {
 			white_king_safety += 20;
 		}
 	}
 	if ((bkp >= 56 && bkp <= 58) || (bkp >= 62)) {
-		if (bkp % 8 != 7 && b->position[bkp - 7]->get_type() == 12) {
+		if (bkp % 8 != 7 && b->position[bkp - 7].get_type() == 12) {
 			black_king_safety -= 15;
 		}
-		if (bkp % 8 != 0 && b->position[bkp - 9]->get_type() == 12) {
+		if (bkp % 8 != 0 && b->position[bkp - 9].get_type() == 12) {
 			black_king_safety -= 15;
 		}
-		if (b->position[bkp - 8]->get_type() == 12) {
+		if (b->position[bkp - 8].get_type() == 12) {
 			black_king_safety -= 20;
 		}
 	}
@@ -89,7 +89,7 @@ int Evaluator::evaluate(Board* b)
 	bool full_open_with_king = false;
 	int eg_pawn_tropism = 0;
 	for (int i = 0; i < 64; i++) {
-		Piece* curr = b->position[i];
+		Piece* curr = &b->position[i];
 		unsigned type = curr->get_type();
 		switch (type)
 		{
@@ -258,13 +258,13 @@ bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, Move* p
 int Evaluator::score_quiet_move(Board* pos, Move* m) {
 	int origin = m->origin;
 	int target = m->target;
-	if (pos->position[origin]->is_white()) {
+	if (pos->position[origin].is_white()) {
 		origin = mirror_vertical(origin);
 		target = mirror_vertical(target);
 	}
 
 	//offset = 0;
-	unsigned type = pos->position[origin]->get_type();
+	unsigned type = pos->position[origin].get_type();
 	int game_phase = 4 * pos->queen_list->size() + 2 * pos->rook_list->size() + pos->bishop_list->size() + pos->knight_list->size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
@@ -315,7 +315,7 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 int Evaluator::score_capture(Board* pos, Move* move) {
 	int origin = move->origin;
 	int target = move->target;
-	return pos->position[target]->value() - pos->position[origin]->value() + CAPTURE_SCORE;
+	return pos->position[target].value() - pos->position[origin].value() + CAPTURE_SCORE;
 }
 
 int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best, std::vector<Move*>* killer_moves_at_depth, bool left_most) {
@@ -340,7 +340,7 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best
 				return KILLER_MOVE_TWO;
 			}
 		}
-		int history_val = Evaluator::history[pos->position[move->origin]->get_type() - 1][move->target];
+		int history_val = Evaluator::history[pos->position[move->origin].get_type() - 1][move->target];
 		if (history_val > 0) {
 			return history_val + HISTORY_MOVE_OFFSET;
 		}

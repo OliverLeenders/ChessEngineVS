@@ -178,10 +178,10 @@ void uci_console() {
 								for (int i = 3; i < split->size(); i++) {
 									//std::cout << (*split)[i] << std::endl;
 									Move* m = new Move((*split)[i], board->white_to_move, false, false);
-									if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+									if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
 										m->is_capture = true;
 									}
-									if (board->position[m->origin]->get_type() >= 11) {
+									if (board->position[m->origin].get_type() >= 11) {
 										m->is_pawn_push = true;
 									}
 									board->make_move(m);
@@ -211,10 +211,10 @@ void uci_console() {
 								if ((*split)[8] == "moves") {
 									for (int i = 9; i < split->size(); i++) {
 										Move* m = new Move((*split)[i], board->white_to_move, false, false);
-										if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+										if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
 											m->is_capture = true;
 										}
-										if (board->position[m->origin]->get_type() >= 11) {
+										if (board->position[m->origin].get_type() >= 11) {
 											m->is_pawn_push = true;
 										}
 										board->make_move(m);
@@ -262,10 +262,10 @@ void uci_console() {
 				}
 				else if ((*split)[0] == "move") {
 					Move* m = new Move((*split)[1], board->white_to_move, false, false);
-					if ((!board->position[m->target]->is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin]->get_type() >= 11)) {
+					if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
 						m->is_capture = true;
 					}
-					if (board->position[m->origin]->get_type() >= 11) {
+					if (board->position[m->origin].get_type() >= 11) {
 						m->is_pawn_push = true;
 					}
 					board->make_move(m);

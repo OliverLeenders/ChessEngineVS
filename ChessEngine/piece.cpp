@@ -9,6 +9,9 @@ Piece::Piece(unsigned set_type)
 {
     this->type = set_type;
 }
+Piece::Piece() {
+    this->type = 0U;
+}
 
 int Piece::set_piece_type(unsigned t)
 {

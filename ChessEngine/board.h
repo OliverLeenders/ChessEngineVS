@@ -14,10 +14,10 @@ class Board
 {
 private:
 	/* data */
-	bool* attacked = new bool[64];
-	unsigned int* pins = new unsigned int[64];
-	bool* checks = new bool[64];
-	unsigned int* check_direction = new unsigned int[2];
+	bool attacked[64] = { false };
+	unsigned int pins[64] = { 0U };
+	bool checks[64] = { false };
+	unsigned int check_direction[2] = { 0U };
 	/* functions */
 	std::string get_coord_str_from_index(int i);
 	std::string create_move_str(int from, int to);
@@ -47,7 +47,6 @@ public:
 	
 	int white_king_pos = -1;
 	int black_king_pos = -1;
-	Board* prev_pos;
 	// std::vector<Board*>* get_sorted_legal_moves(Evaluator *e);
 	// std::vector<Board*>* get_sorted_legal_captures(Evaluator* e);
 	int en_passant_target_index = -1;
@@ -61,9 +60,9 @@ public:
 	* Kingside black
 	* Queenside black
 	*/
-	bool* castling_rights = new bool[4];
+	bool castling_rights[4] = {false};
 	// position array
-	Piece** position = new Piece * [64];
+	Piece position[64] = { Piece() };
 	// piece lists
 	std::list<int>* queen_list = new std::list<int>;
 	std::list<int>* rook_list = new std::list<int>;

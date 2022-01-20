@@ -404,7 +404,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				else if (score > alpha)
 				{
 					if (!move->is_capture) {
-						Evaluator::history[pos->position[move->target]->get_type() - 1][move->target] += depth_left * depth_left;
+						Evaluator::history[pos->position[move->target].get_type() - 1][move->target] += depth_left * depth_left;
 					}
 					for (Move* const& pv_move : *PV)
 					{
