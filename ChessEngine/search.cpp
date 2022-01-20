@@ -66,7 +66,7 @@ int Search::evaluate(Board* pos, unsigned int depth)
 		delete v;
 	}
 	killer_moves->clear();
-	pos->transposition_table->clear();
+	pos->transposition_table->switch_prev();
 	Evaluator::reset_history();
 	delete PV;
 	return res;
@@ -140,7 +140,6 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		delete m;
 	}
 	prev_pv->clear();
-	pos->transposition_table->clear();
 	Evaluator::reset_history();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->stop_now = true;
@@ -214,7 +213,6 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 		delete m;
 	}
 	prev_pv->clear();
-	pos->transposition_table->clear();
 	Evaluator::reset_history();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());

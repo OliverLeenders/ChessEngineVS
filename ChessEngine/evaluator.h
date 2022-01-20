@@ -53,6 +53,9 @@ private:
 	static int dist_bishop_to_king[64][64];
 	static int north_west_diagonal[64];
 	static int north_east_diagonal[64];
-
+	static int manhattan_distance[64][64];
+	static int metric_distance[64][64];
+	static int distance_to_rim[64];
+	static int isolated_pawn_penalties[8];
 
 };
