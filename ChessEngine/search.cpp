@@ -318,7 +318,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 
 		if (!draw_score) {
 			// null move pruning
-			int game_phase = 4 * pos->queen_list->size() + 2 * pos->rook_list->size() + pos->bishop_list->size() + pos->knight_list->size();
+			int game_phase = 4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size();
 
 			if (pos->num_checks == 0 && depth_left >= 3 && game_phase > 10) {
 				int pos_fifty = pos->fifty_move_rule_counter;

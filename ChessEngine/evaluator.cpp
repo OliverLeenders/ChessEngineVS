@@ -33,9 +33,9 @@ void Evaluator::init_tables() {
 int Evaluator::evaluate(Board* b)
 {
 	// insufficient material
-	if (b->pawn_list->size() == 0 && b->queen_list->size() == 0 && b->rook_list->size() == 0) {
+	if (b->pawn_list.size() == 0 && b->queen_list.size() == 0 && b->rook_list.size() == 0) {
 		// std::cout << "insufficient material" << std::endl;
-		if ((b->bishop_list->size() == 0 && b->knight_list->size() == 0) || (b->bishop_list->size() == 0 && b->knight_list->size() == 1) || (b->bishop_list->size() == 1 && b->knight_list->size() == 0)) {
+		if ((b->bishop_list.size() == 0 && b->knight_list.size() == 0) || (b->bishop_list.size() == 0 && b->knight_list.size() == 1) || (b->bishop_list.size() == 1 && b->knight_list.size() == 0)) {
 			return 0;
 		}
 	}
@@ -49,7 +49,7 @@ int Evaluator::evaluate(Board* b)
 		open_files[1][i] = 0;
 	}
 	// compute open files
-	for (int const& i : *b->pawn_list) {
+	for (int const& i : b->pawn_list) {
 		open_files[b->position[i].is_black()][i % 8]++;
 	}
 
@@ -195,8 +195,8 @@ int Evaluator::evaluate(Board* b)
 			break;
 		}
 	}
-	eg_eval += eg_pawn_tropism / ((int) std::max(1ULL, b->pawn_list->size()));
-	int game_phase = 4 * b->queen_list->size() + 2 * b->rook_list->size() + b->bishop_list->size() + b->knight_list->size();
+	eg_eval += eg_pawn_tropism / ((int) std::max(1ULL, b->pawn_list.size()));
+	int game_phase = 4 * b->queen_list.size() + 2 * b->rook_list.size() + b->bishop_list.size() + b->knight_list.size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
 	if (white_material == 0 || black_material == 0) {
@@ -265,7 +265,7 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 
 	//offset = 0;
 	unsigned type = pos->position[origin].get_type();
-	int game_phase = 4 * pos->queen_list->size() + 2 * pos->rook_list->size() + pos->bishop_list->size() + pos->knight_list->size();
+	int game_phase = 4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
 

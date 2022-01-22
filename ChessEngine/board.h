@@ -43,7 +43,6 @@ public:
 	Board();
 	Board(std::string fen);
 	void set_pos_from_fen(std::string fen);
-	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
 	
 	
 	int white_king_pos = -1;
@@ -65,11 +64,11 @@ public:
 	// position array
 	Piece position[64] = { Piece() };
 	// piece lists
-	std::list<int>* queen_list = new std::list<int>;
-	std::list<int>* rook_list = new std::list<int>;
-	std::list<int>* bishop_list = new std::list<int>;
-	std::list<int>* knight_list = new std::list<int>;
-	std::list<int>* pawn_list = new std::list<int>;
+	std::list<int> queen_list;
+	std::list<int> rook_list;
+	std::list<int> bishop_list;
+	std::list<int> knight_list;
+	std::list<int> pawn_list;
 	
 	// 50 move rule counter
 	int fifty_move_rule_counter = 0;
