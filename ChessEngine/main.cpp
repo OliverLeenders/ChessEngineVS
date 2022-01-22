@@ -247,8 +247,17 @@ void uci_console() {
 							ni_search(&board, depth, s);
 						}
 					}
-					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
-						ni_search(&board, 5, s);
+					else if ((*split).size() >= 9 && (*split)[1] == "wtime" && (*split)[3] == "btime" && (*split)[5] == "winc" && (*split)[7] == "binc") {
+						int w_time = std::stoi((*split)[2]);
+						int b_time = std::stoi((*split)[4]);
+						int w_inc = std::stoi((*split)[6]);
+						int b_inc = std::stoi((*split)[8]);
+						if (board.white_to_move) {
+							search_time(&board, std::min(w_time, (w_time + 25 * w_inc) / 25), search_thread, s);
+						}
+						else {
+							search_time(&board, std::min(b_time, (b_time + 25 * b_inc) / 25), search_thread, s);
+						}
 					}
 					else if ((*split)[1] == "movetime") {
 						if (split->size() == 3) {
