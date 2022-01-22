@@ -1,22 +1,31 @@
 #include "zobrist_hashmap.h"
-zobrist_hashmap::zobrist_hashmap(size_t set_size)
-{
-	Utility util;
+
+uint64_t zobrist_hashmap::zobrist_base_numbers[781] = { 0 };
+
+void zobrist_hashmap::init_bases() {
+	Utility util;	
 	for (int i = 0; i < 781; i++)
 	{
-		this->zobrist_base_numbers[i] = util.random_64_bit_num();
+		zobrist_base_numbers[i] = util.random_64_bit_num();
 	}
+
+}
+
+zobrist_hashmap::zobrist_hashmap(size_t set_size)
+{
+
 	this->size = set_size;
 	this->count = 0;
 	this->map = new hash_entry[this->size];
 	this->prev_map = new hash_entry[this->size];
 }
 
+
+
 zobrist_hashmap::~zobrist_hashmap()
 {
 	delete[] this->map;
 	delete[] this->prev_map;
-	delete[] this->zobrist_base_numbers;
 }
 
 int zobrist_hashmap::probe_hash(uint64_t z_key, int ply, int alpha, int beta)

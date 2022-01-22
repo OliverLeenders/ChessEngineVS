@@ -30,6 +30,23 @@ Board::Board()
 Board::Board(std::string fen)
 {
 	// fill
+	
+
+	// iniitialize transposition table
+	this->transposition_table = new zobrist_hashmap(1000000);
+	set_pos_from_fen(fen);
+
+}
+
+void Board::set_pos_from_fen(std::string fen)
+{
+	// clear piece lists
+	this->pawn_list->clear();
+	this->knight_list->clear();
+	this->bishop_list->clear();
+	this->rook_list->clear();
+	this->queen_list->clear();
+
 	std::vector<std::string>* fen_split = new std::vector<std::string>;
 	Utility::split_string(fen_split, fen);
 
@@ -277,17 +294,13 @@ Board::Board(std::string fen)
 		this->pins[i] = 0;
 		this->checks[i] = false;
 	}
+	this->pos_hash = this->hash(this);
 	// compute attacks
 	compute_attacked_squares();
 	// compute pins + sliding checks
 	compute_pin_rays();
 	// compute pawn + knight checks
 	compute_other_checks();
-
-
-	// iniitialize transposition table
-	this->transposition_table = new zobrist_hashmap(1000000);
-	this->pos_hash = this->hash(this);
 
 }
 
@@ -346,38 +359,38 @@ uint64_t Board::hash(Board* b)
 	uint64_t hash = 0;
 
 	std::list<int>::iterator itr;
-	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos].get_type()];
-	hash = hash xor this->transposition_table->zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos].get_type()];
+	hash = hash xor zobrist_hashmap::zobrist_base_numbers[(b->white_king_pos * 12) + b->position[b->white_king_pos].get_type()];
+	hash = hash xor zobrist_hashmap::zobrist_base_numbers[(b->black_king_pos * 12) + b->position[b->black_king_pos].get_type()];
 	for (itr = b->queen_list->begin(); itr != b->queen_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
 	}
 	for (itr = b->rook_list->begin(); itr != b->rook_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
 	}
 	for (itr = b->bishop_list->begin(); itr != b->bishop_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
 	}
 	for (itr = b->knight_list->begin(); itr != b->knight_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
 	}
 	for (itr = b->pawn_list->begin(); itr != b->pawn_list->end(); itr++) {
-		hash = hash xor this->transposition_table->zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[(*itr * 12) + b->position[*itr].get_type()];
 	}
 	int i = 64;
 	for (int j = 0; j < 4; j++)
 	{
 		if (b->castling_rights[j])
 		{
-			hash = hash xor this->transposition_table->zobrist_base_numbers[i + j];
+			hash = hash xor zobrist_hashmap::zobrist_base_numbers[i + j];
 		}
 	}
 	if (b->en_passant_target_index > 0)
 	{
-		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[i + 4 + (b->en_passant_target_index % 8)];
 	}
 	if (!b->white_to_move)
 	{
-		hash = hash xor this->transposition_table->zobrist_base_numbers[i + 12];
+		hash = hash xor zobrist_hashmap::zobrist_base_numbers[i + 12];
 	}
 	return hash;
 }
@@ -629,11 +642,13 @@ void Board::add_diagonal_attack_rays(int i)
 		if (!this->position[j].is_empty())
 		{
 			this->attacked[j] = true;
+			//std::cout << "break " << j << " -> " << this->position[j].get_type() << std::endl;
 			break;
 		}
 		else
 		{
 			this->attacked[j] = true;
+			//std::cout << j << " -> " << this->position[j].get_type() << std::endl;
 		}
 	}
 }

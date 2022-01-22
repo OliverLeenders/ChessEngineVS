@@ -42,6 +42,7 @@ private:
 public:
 	Board();
 	Board(std::string fen);
+	void set_pos_from_fen(std::string fen);
 	Board(Piece* set_pos[], bool who_to_move, bool* set_castling_rights);
 	
 	

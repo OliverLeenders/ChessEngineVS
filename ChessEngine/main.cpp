@@ -109,8 +109,9 @@ void ni_search(Board* b, int depth, Search* s) {
  *
  */
 void uci_console() {
-	Board* board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	Evaluator::init_tables();
+	zobrist_hashmap::init_bases();
+	Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
 	bool is_calculating = false;
 	bool has_just_finished = false;
@@ -135,19 +136,20 @@ void uci_console() {
 				break;
 			}
 			else if ((*split)[0] == "print") {
-				std::cout << board->pos_as_str() << std::endl;
+				std::cout << board.pos_as_str() << "Key: " << std::uppercase << std::hex << board.pos_hash << std::dec << std::nouppercase << "\n" << std::endl;
+
 			}
 			else if ((*split)[0] == "attacks") {
-				std::cout << board->get_attacked() << std::endl;
+				std::cout << board.get_attacked() << std::endl;
 			}
 			else if ((*split)[0] == "pins") {
-				std::cout << board->get_pins() << std::endl;
+				std::cout << board.get_pins() << std::endl;
 			}
 			else if ((*split)[0] == "checks") {
-				std::cout << board->get_checks() << std::endl;
+				std::cout << board.get_checks() << std::endl;
 			}
 			else if ((*split)[0] == "castling") {
-				std::cout << board->get_castling_rights() << std::endl;
+				std::cout << board.get_castling_rights() << std::endl;
 			}
 			else if ((*split)[0] == "uci") {
 				std::cout << "id name Leandor" << std::endl;
@@ -158,70 +160,66 @@ void uci_console() {
 				std::cout << "readyok" << std::endl;
 			}
 			else if ((*split)[0] == "unmake") {
-				board->unmake_move();
+				board.unmake_move();
 			}
 			else if ((*split)[0] == "break") {
 				std::cout << "triggered breakpoint" << std::endl;
 			}
 			else if ((*split)[0] == "eval") {
-				std::cout << Evaluator::evaluate(board) << std::endl;
+				std::cout << Evaluator::evaluate(&board) << std::endl;
 			}
 			else if (split->size() >= 2) {
 				if ((*split)[0] == "position") {
 					//std::cout << "pos set" << std::endl;
 					if ((*split)[1] == "startpos") {
 						//std::cout << "initial pos" << std::endl;
-						delete board;
-						board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+						board.set_pos_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 						if (split->size() > 3) {
 							if ((*split)[2] == "moves") {
 								for (int i = 3; i < split->size(); i++) {
 									//std::cout << (*split)[i] << std::endl;
-									Move* m = new Move((*split)[i], board->white_to_move, false, false);
-									if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
+									Move* m = new Move((*split)[i], board.white_to_move, false, false);
+									if ((!board.position[m->target].is_empty()) || (board.en_passant_target_index == m->target && board.position[m->origin].get_type() >= 11)) {
 										m->is_capture = true;
 									}
-									if (board->position[m->origin].get_type() >= 11) {
+									if (board.position[m->origin].get_type() >= 11) {
 										m->is_pawn_push = true;
 									}
-									board->make_move(m);
+									board.make_move(m);
 								}
 							}
 						}
 					}
 					else if ((*split)[1] == "kiwipete") {
-						delete board;
-						board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+						board.set_pos_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 					}
 					else if ((*split)[1] == "pos3") {
-						delete board;
-						board = new Board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+						board.set_pos_from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
 					}
 					else if (split->size() >= 3) {
 						if ((*split)[1] == "fen") {
-							delete board;
 							std::string fen = "";
 							for (int i = 2; i < 8; i++) {
 								fen += (*split)[i] + " ";
 							}
 							// std::cout << fen << std::endl;
-							board = new Board(fen);
+							board.set_pos_from_fen(fen);
 							// std::cout << board->pos_as_str() << std::endl << std::endl;
 							if (split->size() > 8) {
 								if ((*split)[8] == "moves") {
 									for (int i = 9; i < split->size(); i++) {
-										Move* m = new Move((*split)[i], board->white_to_move, false, false);
-										if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
+										Move* m = new Move((*split)[i], board.white_to_move, false, false);
+										if ((!board.position[m->target].is_empty()) || (board.en_passant_target_index == m->target && board.position[m->origin].get_type() >= 11)) {
 											m->is_capture = true;
 										}
-										if (board->position[m->origin].get_type() >= 11) {
+										if (board.position[m->origin].get_type() >= 11) {
 											m->is_pawn_push = true;
 										}
-										board->make_move(m);
+										board.make_move(m);
 									}
 								}
 							}
-							std::cout << board->pos_as_str() << std::endl << std::endl;
+							std::cout << board.pos_as_str() << std::endl << std::endl;
 						}
 					}
 				}
@@ -229,47 +227,47 @@ void uci_console() {
 					if ((*split)[1] == "perft") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							perft(board, depth);
+							perft(&board, depth);
 						}
 					}
 					else if ((*split)[1] == "depth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
 							is_calculating = true;
-							search(board, depth, search_thread, s);
+							search(&board, depth, search_thread, s);
 						}
 					}
 					else if ((*split)[1] == "infinite") {
 						is_calculating = true;
-						search(board, 256, search_thread, s);
+						search(&board, 256, search_thread, s);
 					}
 					else if ((*split)[1] == "nidepth") {
 						if (split->size() == 3) {
 							int depth = std::stoi((*split)[2]);
-							ni_search(board, depth, s);
+							ni_search(&board, depth, s);
 						}
 					}
 					else if ((*split)[1] == "wtime" || (*split)[1] == "btime" || (*split)[1] == "winc" || (*split)[1] == "binc") {
-						ni_search(board, 5, s);
+						ni_search(&board, 5, s);
 					}
 					else if ((*split)[1] == "movetime") {
 						if (split->size() == 3) {
 							int time_ms = std::stoi((*split)[2]);
-							search_time(board, time_ms, search_thread, s);
+							search_time(&board, time_ms, search_thread, s);
 						}
 					}
 
 				}
 				else if ((*split)[0] == "move") {
-					Move* m = new Move((*split)[1], board->white_to_move, false, false);
-					if ((!board->position[m->target].is_empty()) || (board->en_passant_target_index == m->target && board->position[m->origin].get_type() >= 11)) {
+					Move* m = new Move((*split)[1], board.white_to_move, false, false);
+					if ((!board.position[m->target].is_empty()) || (board.en_passant_target_index == m->target && board.position[m->origin].get_type() >= 11)) {
 						m->is_capture = true;
 					}
-					if (board->position[m->origin].get_type() >= 11) {
+					if (board.position[m->origin].get_type() >= 11) {
 						m->is_pawn_push = true;
 					}
-					board->make_move(m);
-					std::cout << board->pos_as_str() << std::endl;
+					board.make_move(m);
+					std::cout << board.pos_as_str() << std::endl;
 				}
 			}
 		}
@@ -277,6 +275,5 @@ void uci_console() {
 	}
 	delete s;
 	delete search_thread;
-	delete board;
 }
 

@@ -22,7 +22,8 @@ public:
 
 	void switch_prev();
 	void clear();
-	uint64_t* zobrist_base_numbers = new uint64_t[781];
+	static uint64_t zobrist_base_numbers[781];
+	static void init_bases();
 private:
 };
 

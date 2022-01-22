@@ -34,16 +34,16 @@ int Movegen::generate_moves(int depth)
     {
         int move_count = 0;
         std::vector<Move*>* possible_moves = this->starting_pos->possible_moves();
-        for (Move* const& b : *possible_moves)
+        for (Move* const& m : *possible_moves)
         {
-            this->starting_pos->make_move(b);
-            Movegen* m = new Movegen(this->starting_pos);
-            move_count += m->generate_moves(depth - 1);
-            delete m;
+            this->starting_pos->make_move(m);
+            Movegen* gen = new Movegen(this->starting_pos);
+            move_count += gen->generate_moves(depth - 1);
+            delete gen;
             this->starting_pos->unmake_move();
         }
-        for (Move * const& b : *possible_moves) {
-            delete b;
+        for (Move * const& m : *possible_moves) {
+            delete m;
         }
         delete possible_moves;
         return move_count;
