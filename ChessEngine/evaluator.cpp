@@ -53,33 +53,44 @@ int Evaluator::evaluate(Board* b)
 		open_files[b->position[i].is_black()][i % 8]++;
 	}
 
-	int white_king_safety = 0;
-	int black_king_safety = 0;
+	for (int i = 0; i < 8; i++) {
+		if (i == 0) {
+			passed_pawns[0][0] = (open_files[0][0] != 0 && open_files[1][0] == 0 && open_files[1][1] == 0);
+			passed_pawns[1][0] = (open_files[1][0] != 0 && open_files[0][0] == 0 && open_files[0][1] == 0);
+		}
+		else if (i == 7) {
+			passed_pawns[0][7] = (open_files[0][7] != 0 && open_files[1][7] == 0 && open_files[1][6] == 0);
+			passed_pawns[1][7] = (open_files[1][7] != 0 && open_files[0][7] == 0 && open_files[0][6] == 0);
+		}
+		else {
+			passed_pawns[0][i] = (open_files[0][i] != 0 && open_files[1][i] == 0 && open_files[1][i - 1] == 0 && open_files[1][i + 1] == 0);
+			passed_pawns[1][i] = (open_files[1][i] != 0 && open_files[0][i] == 0 && open_files[0][i - 1] == 0 && open_files[0][i + 1] == 0);
+		}
+		// std::cout << passed_pawns[0][i] << passed_pawns[1][i] << std::endl;
+	}
+
+	int white_pawn_shield = 0;
+	int black_pawn_shield = 0;
+	int pawn_storm_on_white = 0;
+	int pawn_storm_on_black = 0;
 	int wkp = b->white_king_pos;
 	int bkp = b->black_king_pos;
 	if (wkp <= 2 || (wkp >= 6 && wkp < 8)) {
-		if (wkp % 8 != 7 && b->position[wkp + 9].get_type() == 11) {
-			white_king_safety += 15;
-		}
-		if (wkp % 8 != 0 && b->position[wkp + 7].get_type() == 11) {
-			white_king_safety += 15;
-		}
-		if (b->position[wkp + 8].get_type() == 11) {
-			white_king_safety += 20;
-		}
+		white_pawn_shield += 15 * (wkp % 8 != 7 && b->position[wkp + 9].get_type() == 11);
+		white_pawn_shield += 15 * (wkp % 8 != 0 && b->position[wkp + 7].get_type() == 11);
+		white_pawn_shield += 20 * (b->position[wkp + 8].get_type() == 11);
+		pawn_storm_on_white += 7 * (wkp % 8 != 7 && b->position[wkp + 17].get_type() == 12);
+		pawn_storm_on_white += 7 * (wkp % 8 != 0 && b->position[wkp + 15].get_type() == 12);
+		pawn_storm_on_white += 9 * (b->position[wkp + 16].get_type() == 12);
 	}
 	if ((bkp >= 56 && bkp <= 58) || (bkp >= 62)) {
-		if (bkp % 8 != 7 && b->position[bkp - 7].get_type() == 12) {
-			black_king_safety -= 15;
-		}
-		if (bkp % 8 != 0 && b->position[bkp - 9].get_type() == 12) {
-			black_king_safety -= 15;
-		}
-		if (b->position[bkp - 8].get_type() == 12) {
-			black_king_safety -= 20;
-		}
+		black_pawn_shield -= 15 * (bkp % 8 != 7 && b->position[bkp - 7].get_type() == 12);
+		black_pawn_shield -= 15 * (bkp % 8 != 0 && b->position[bkp - 9].get_type() == 12);
+		black_pawn_shield -= 20 * (b->position[bkp - 8].get_type() == 12);
+		pawn_storm_on_black += 7 * (bkp % 8 != 7 && b->position[wkp - 15].get_type() == 11);
+		pawn_storm_on_black += 7 * (bkp % 8 != 0 && b->position[wkp - 17].get_type() == 11);
+		pawn_storm_on_black += 9 * (b->position[wkp - 16].get_type() == 11);
 	}
-
 	int white_king_tropism = 0;
 	int black_king_tropism = 0;
 	int black_material = 0;
@@ -87,6 +98,8 @@ int Evaluator::evaluate(Board* b)
 	bool half_open = false;
 	bool full_open = false;
 	bool full_open_with_king = false;
+	int black_rook_on_open = -1;
+	int white_rook_on_open = -1;
 	int eg_pawn_tropism = 0;
 	for (int i = 0; i < 64; i++) {
 		Piece* curr = &b->position[i];
@@ -99,6 +112,7 @@ int Evaluator::evaluate(Board* b)
 		case 1:
 			mg_eval += mg_value[type] + KingTable[mirror_vertical(i)];
 			eg_eval += eg_value[type] + KingTableEndGame[mirror_vertical(i)];
+			// if king pos is more centralized get bonus for 
 			eg_eval += (distance_to_rim[wkp] > distance_to_rim[bkp]) * distances_bonus[wkp][bkp];
 			white_material += 1;
 			break;
@@ -114,7 +128,7 @@ int Evaluator::evaluate(Board* b)
 			half_open = open_files[0][i % 8] == 0;
 			full_open = half_open && open_files[1][i % 8];
 			full_open_with_king = full_open && bkp % 8 == i % 8;
-			mg_eval += 3 * half_open + 4 * full_open + 7 * full_open_with_king;
+			mg_eval += 5 * half_open + 7 * full_open + 10 * full_open_with_king;
 			eg_eval += eg_value[type] + QueenTableEndGame[mirror_vertical(i)];
 			black_king_tropism += dist_queen_to_king[i][bkp];
 			white_material += mg_value[type];
@@ -124,7 +138,7 @@ int Evaluator::evaluate(Board* b)
 			half_open = open_files[1][i % 8] == 0;
 			full_open = half_open && open_files[0][i % 8];
 			full_open_with_king = full_open && wkp % 8 == i % 8;
-			mg_eval -= 3 * half_open + 4 * full_open + 7 * full_open_with_king;
+			mg_eval -= 5 * half_open + 7 * full_open + 10 * full_open_with_king;
 			eg_eval -= eg_value[type] + QueenTableEndGame[i];
 			white_king_tropism += dist_queen_to_king[i][wkp];
 			black_material += mg_value[type];
@@ -135,20 +149,26 @@ int Evaluator::evaluate(Board* b)
 			half_open = open_files[0][i % 8] == 0;
 			full_open = half_open && open_files[1][i % 8];
 			full_open_with_king = full_open && bkp % 8 == i % 8;
-			mg_eval += 5 * half_open + 5 * full_open + 10 * full_open_with_king;
+			mg_eval += 8 * half_open + 10 * full_open + 15 * full_open_with_king + (full_open && white_rook_on_open == i % 8) * 10;
 			eg_eval += eg_value[type] + RookTableEndGame[mirror_vertical(i)];
 			black_king_tropism += dist_rook_to_king[i][bkp];
 			white_material += mg_value[type];
+			if (full_open) {
+				white_rook_on_open = i % 8;
+			}
 			break;
 		case 6:
 			mg_eval -= mg_value[type] + RookTable[i];
 			half_open = open_files[1][i % 8] == 0;
 			full_open = half_open && open_files[0][i % 8];
 			full_open_with_king = full_open && wkp % 8 == i % 8;
-			mg_eval -= 5 * half_open + 5 * full_open + 10 * full_open_with_king;
+			mg_eval -= 8 * half_open + 10 * full_open + 15 * full_open_with_king + (full_open && black_rook_on_open == i % 8);
 			eg_eval -= eg_value[type] + RookTableEndGame[i];
 			white_king_tropism += dist_rook_to_king[i][wkp];
 			black_material += mg_value[type];
+			if (full_open) {
+				black_rook_on_open = i % 8;
+			}
 			break;
 			// bishop
 		case 7:
@@ -179,15 +199,15 @@ int Evaluator::evaluate(Board* b)
 			// pawn
 		case 11:
 			mg_eval += mg_value[type] + PawnTable[mirror_vertical(i)];
-			eg_eval += eg_value[type] + PawnTableEndGame[mirror_vertical(i)];
-			eg_pawn_tropism += ((manhattan_distance[i][wkp] < manhattan_distance[i][bkp]) * distances_bonus[i][wkp] 
+			eg_eval += eg_value[type] + (passed_pawns[0][i % 8]) * PawnTableEndGamePP[mirror_vertical(i)] + (!passed_pawns[0][i % 8]) * PawnTableEndGame[mirror_vertical(i)];
+			eg_pawn_tropism += ((manhattan_distance[i][wkp] < manhattan_distance[i][bkp]) * distances_bonus[i][wkp]
 				- (manhattan_distance[i][wkp] > manhattan_distance[i][bkp]) * distances_bonus[i][bkp]);
 			white_material += mg_value[type];
 			break;
 		case 12:
 			mg_eval -= mg_value[type] + PawnTable[i];
-			eg_eval -= eg_value[type] + PawnTableEndGame[i];
-			eg_pawn_tropism -= ((manhattan_distance[i][bkp] < manhattan_distance[i][wkp]) * distances_bonus[i][bkp] 
+			eg_eval -= eg_value[type] + (passed_pawns[1][i % 8]) * PawnTableEndGamePP[i] + (!passed_pawns[1][i % 8]) * PawnTableEndGame[1];
+			eg_pawn_tropism -= ((manhattan_distance[i][bkp] < manhattan_distance[i][wkp]) * distances_bonus[i][bkp]
 				- (manhattan_distance[i][bkp] > manhattan_distance[i][wkp]) * distances_bonus[i][wkp]);
 			black_material += mg_value[type];
 			break;
@@ -195,7 +215,7 @@ int Evaluator::evaluate(Board* b)
 			break;
 		}
 	}
-	eg_eval += eg_pawn_tropism / ((int) std::max(1ULL, b->pawn_list.size()));
+	eg_eval += eg_pawn_tropism / ((int)std::max(1ULL, b->pawn_list.size()));
 	int game_phase = 4 * b->queen_list.size() + 2 * b->rook_list.size() + b->bishop_list.size() + b->knight_list.size();
 	int mg_phase = std::min(24, game_phase);
 	int eg_phase = 24 - game_phase;
@@ -203,7 +223,7 @@ int Evaluator::evaluate(Board* b)
 		std::cout << b->pos_as_str() << std::endl;
 	}
 	int e = (mg_eval * mg_phase + eg_eval * eg_phase) / 24;
-	e += (((black_king_tropism + white_king_safety) * white_material) - ((white_king_tropism + black_king_safety) * black_material)) / INITIAL_MATERIAL_VALUE;
+	e += (((black_king_tropism + white_pawn_shield + pawn_storm_on_black) * white_material) - ((white_king_tropism + black_pawn_shield + pawn_storm_on_white) * black_material)) / INITIAL_MATERIAL_VALUE;
 	int isolated_counter_white = 0;
 	int isolated_pawn_eval = 0;
 	int isolated_counter_black = 0;
@@ -251,8 +271,14 @@ int Evaluator::evaluate(Board* b)
  * \return true if and only if move 1 & 2 are already in the correct respective order.
  */
 bool Evaluator::compare(Board* pos, Move* m_1, Move* m_2, Move* pv_move, Move* prev_best, std::vector<Move*>* killer_moves_at_depth, bool left_most) {
-	return score_move(pos, m_1, pv_move, prev_best, killer_moves_at_depth, left_most) > score_move(pos, m_2, pv_move, prev_best, killer_moves_at_depth, left_most);
-
+	int score_1 = score_move(pos, m_1, pv_move, prev_best, killer_moves_at_depth, left_most);
+	int score_2 = score_move(pos, m_2, pv_move, prev_best, killer_moves_at_depth, left_most);
+	if (score_1 == score_2) {
+		return score_quiet_move(pos, m_1) > score_quiet_move(pos, m_2);
+	}
+	else {
+		return score_1 > score_2;
+	}
 }
 
 int Evaluator::score_quiet_move(Board* pos, Move* m) {
@@ -366,6 +392,7 @@ int Evaluator::manhattan_distance[64][64] = { 0 };
 int Evaluator::metric_distance[64][64] = { 0 };
 int Evaluator::history[12][64] = { 0 };
 int Evaluator::open_files[2][8] = { 0 };
+bool Evaluator::passed_pawns[2][8] = { false };
 
 int Evaluator::isolated_pawn_penalties[8] = { 3, 4, 6, 7, 7, 6, 4, 3 };
 int Evaluator::distance_to_rim[64] = {
@@ -433,6 +460,17 @@ int Evaluator::PawnTableEndGameMO[64] = {
 	 35,  40,  40,  40,  40,  40,  40,  35,
 	 25,  27,  27,  27,  27,  27,  27,  25,
 	 13,  15,  15,  15,  15,  15,  15,  13,
+	  0,   0,   0,   0,   0,   0,   0,   0,
+};
+
+int Evaluator::PawnTableEndGamePP[64] = {
+	  0,   0,   0,   0,   0,   0,   0,   0,
+	200, 220, 230, 220, 220, 230, 220, 200,
+	140, 150, 160, 150, 150, 160, 150, 140,
+	 50,  60,  40,  30,  30,  40,  60,  50,
+	 30,  40,  30,  20,  20,  30,  40,  35,
+	 20,  24,  20,  10,  10,  20,  24,  20,
+	 10,  14,  12,   5,   5,  12,  14,  10,
 	  0,   0,   0,   0,   0,   0,   0,   0,
 };
 

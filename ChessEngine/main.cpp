@@ -100,7 +100,7 @@ void search_time(Board* b, int time_ms, std::thread* search_thread, Search* s) {
 	search_thread->detach();
 }
 
-void ni_search(Board* b, int depth, Search* s) {	
+void ni_search(Board* b, int depth, Search* s) {
 	s->evaluate(b, depth);
 }
 
@@ -111,6 +111,7 @@ void ni_search(Board* b, int depth, Search* s) {
 void uci_console() {
 	Evaluator::init_tables();
 	zobrist_hashmap::init_bases();
+	int move_overhead = 25;
 	Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
 	bool is_calculating = false;
@@ -135,9 +136,8 @@ void uci_console() {
 				delete split;
 				break;
 			}
-			else if ((*split)[0] == "print") {
+			else if ((*split)[0] == "print" || (*split)[0] == "d") {
 				std::cout << board.pos_as_str() << "Key: " << std::uppercase << std::hex << board.pos_hash << std::dec << std::nouppercase << "\n" << std::endl;
-
 			}
 			else if ((*split)[0] == "attacks") {
 				std::cout << board.get_attacked() << std::endl;
@@ -154,10 +154,19 @@ void uci_console() {
 			else if ((*split)[0] == "uci") {
 				std::cout << "id name Leandor" << std::endl;
 				std::cout << "id author Oliver Leenders" << std::endl;
+				std::cout << "option name Move Overhead type spin default 25 min 0 max 5000" << std::endl;
+				std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
+				std::cout << "option name Hash type spin default 256 min 256 max 256" << std::endl;
 				std::cout << "uciok" << std::endl;
 			}
 			else if ((*split)[0] == "isready") {
 				std::cout << "readyok" << std::endl;
+			}
+			else if ((*split).size() >= 6 && ((*split)[0] == "setoption" && (*split)[1] == "name" && (*split)[2] == "Move" && (*split)[3] == "Overhead" && (*split)[4] == "value")) {
+				int new_overhead = std::stoi((*split)[5]);
+				if (new_overhead >= 0 && new_overhead <= 5000) {
+					move_overhead = new_overhead;
+				}
 			}
 			else if ((*split)[0] == "unmake") {
 				board.unmake_move();
@@ -202,9 +211,7 @@ void uci_console() {
 							for (int i = 2; i < 8; i++) {
 								fen += (*split)[i] + " ";
 							}
-							// std::cout << fen << std::endl;
 							board.set_pos_from_fen(fen);
-							// std::cout << board->pos_as_str() << std::endl << std::endl;
 							if (split->size() > 8) {
 								if ((*split)[8] == "moves") {
 									for (int i = 9; i < split->size(); i++) {
@@ -253,16 +260,16 @@ void uci_console() {
 						int w_inc = std::stoi((*split)[6]);
 						int b_inc = std::stoi((*split)[8]);
 						if (board.white_to_move) {
-							search_time(&board, std::min(w_time, (w_time + 25 * w_inc) / 25), search_thread, s);
+							search_time(&board, std::min(w_time, (w_time + 25 * w_inc) / 25) - move_overhead, search_thread, s);
 						}
 						else {
-							search_time(&board, std::min(b_time, (b_time + 25 * b_inc) / 25), search_thread, s);
+							search_time(&board, std::min(b_time, (b_time + 25 * b_inc) / 25) - move_overhead, search_thread, s);
 						}
 					}
 					else if ((*split)[1] == "movetime") {
 						if (split->size() == 3) {
 							int time_ms = std::stoi((*split)[2]);
-							search_time(&board, time_ms, search_thread, s);
+							search_time(&board, time_ms - move_overhead, search_thread, s);
 						}
 					}
 
