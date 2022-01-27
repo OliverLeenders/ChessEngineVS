@@ -30,7 +30,7 @@ Board::Board()
 Board::Board(std::string fen)
 {
 	// fill
-	
+
 
 	// iniitialize transposition table
 	this->transposition_table = new zobrist_hashmap(1000000);
@@ -1811,12 +1811,12 @@ std::vector<Move*>* Board::get_legal_captures()
 	std::vector<Move*>* moves = this->possible_moves();
 	auto iterator = std::remove_if(moves->begin(), moves->end(), [](const Move* m)
 		{
-			bool is_not_capture = !m->is_capture;
-			if (is_not_capture)
+			bool erase_move = !m->is_capture && !m->is_promotion;
+			if (erase_move)
 			{
 				delete m;
 			}
-			return is_not_capture;
+			return erase_move;
 		});
 	moves->erase(iterator, moves->end());
 	return moves;

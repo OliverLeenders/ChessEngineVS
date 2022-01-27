@@ -88,6 +88,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	for (int i = 1; i <= depth && (!stop_now); i++) {
 		this->search_depth = depth;
 		this->node_count = 0;
+		auto start = std::chrono::high_resolution_clock::now();
 		std::list<Move*>* PV = new std::list<Move*>;
 		for (int killer_i = 0; killer_i < i; killer_i++) {
 			std::vector<Move*>* v = new std::vector<Move*>();
@@ -97,6 +98,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 		}
 
 		res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
+		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - start;
 		if (!stop_now) {
 			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 				std::cout << "info score cp " << res;
@@ -110,6 +112,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 				std::cout << move->to_string() << " ";
 			}
 			std::cout << "nodes " << this->node_count;
+			std::cout << " nps " << (int)(this->node_count / duration.count());
 			std::cout << " depth " << i;
 
 			std::cout << std::endl;
@@ -154,10 +157,12 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 	this->duration = std::chrono::milliseconds(ms);
 	int depth = 1;
 	bool time_left = true;
-	int res;
+	int res = 0;
 	while (time_left) {
 		this->search_depth = depth;
 		this->node_count = 0;
+		auto start = std::chrono::high_resolution_clock::now();
+
 		std::list<Move*>* PV = new std::list<Move*>;
 		for (int killer_i = 0; killer_i < depth; killer_i++) {
 			std::vector<Move*>* v = new std::vector<Move*>();
@@ -166,9 +171,20 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			this->killer_moves->push_back(v);
 		}
 
-
-		res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
+		if (depth != 1) {
+			int prelim_res = this->alpha_beta(pos, res - 50, res + 50, depth, PV, 0, true);
+			if (std::abs(prelim_res - res) >= 25) {
+				res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
+			}
+			else {
+				res = prelim_res;
+			}
+		}
+		else {
+			res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
+		}
 		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - start;
 		if ((!stop_now) && now - this->start_time < this->duration) {
 			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
 				std::cout << "info score cp " << res;
@@ -182,6 +198,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 				std::cout << move->to_string() << " ";
 			}
 			std::cout << "nodes " << this->node_count;
+			std::cout << " nps " << (int)(this->node_count / duration.count());
 			std::cout << " depth " << depth;
 
 			std::cout << std::endl;
@@ -287,7 +304,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		(Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, prev_best, killer_moves_at_depth, left_most); });
 		bool is_check = pos->num_checks > 0;
 		// null move pruning
-		
+
 		int score = 0;
 		bool draw_score = false;
 		// check for threefold repetition
@@ -317,6 +334,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		int lower_bound_score = -INT_MAX;
 
 		if (!draw_score) {
+
 			// null move pruning
 			int game_phase = 4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size();
 
@@ -339,11 +357,12 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				}
 			}
 
+			// make move on board
+
 			std::list<Move*>* line = new std::list<Move*>();
 			int i = 0;
 			for (Move* const& move : *moves)
 			{
-				// make move on board
 				pos->make_move(move);
 				// if score is not 0 because of threefold repetition
 				if (left_most && ply < PV->size() && i == 0) {
@@ -351,14 +370,33 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				}
 
 				else if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
+					if (depth_left == 1) {
+						if (reduced && i != 0 && ply > 5 && pos->num_checks == 0 && !move->is_capture) {
+							if (Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < ply) {
+								pos->unmake_move();
+								continue;
+							}
+						}
+					}
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 				}
 				else {
-					if (i < 5) {
+					if (i < 7) {
+						if (depth_left - 2 == 0 && ply > 5 && Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < 1.25 * ply) {
+							pos->unmake_move();
+							continue;
+						}
+						this->reduced = true;
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line, ply + 1, left_most && i == 0);
+						this->reduced = false;
 					}
 					else {
+						if (depth_left / 3 == 0 && ply > 5 && Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < 1.5 * ply) {
+							pos->unmake_move();
+						}
+						this->reduced = true;
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left / 3, line, ply + 1, left_most && i == 0);
+						this->reduced = false;
 					}
 					if (score > alpha && score < beta) {
 						for (Move* const& lm : *line) {
@@ -383,7 +421,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
-					pos->transposition_table->record_hash(pos->pos_hash, ply, beta, LOWER_BOUND, best_move->clone());
+					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
 					// cleanup
 					for (Move* const& imove : *moves)
 					{
@@ -467,12 +505,18 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 {
 	// increase node count
 	// std::cout << "quiescence" << std::endl;
+	int flag = UPPER_BOUND;
 	this->node_count++;
+	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, ply, alpha, beta);
+	if (hash_score != VAL_UNKNOWN && (hash_score <= alpha || hash_score >= beta)) {
+		return hash_score;
+	}
 	std::vector<Move*>* moves = pos->get_legal_captures();
 	// if not in check
+	int stand_pat = NO_VALUE;
 	if (pos->num_checks == 0) {
 		// compute standing pat -- preliminary eval  
-		int stand_pat = Evaluator::evaluate(pos);
+		stand_pat = Evaluator::evaluate(pos);
 
 		// stand_pat beta cutoff
 		if (stand_pat >= beta)
@@ -481,11 +525,13 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 				delete m;
 			}
 			delete moves;
+			pos->transposition_table->record_hash(pos->pos_hash, ply, stand_pat, LOWER_BOUND, nullptr);
 			return beta;
 		}
 		else if (stand_pat > alpha)
 		{
 			alpha = stand_pat;
+			flag = EXACT_SCORE;
 		}
 	}
 	else {
@@ -498,24 +544,33 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 
 		if (moves->size() == 0) {
 			delete moves;
+			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
 			return -MATE_IN_ZERO + ply;
 		}
 	}
 
+	//Move* best_move = nullptr;
+	//int lower_bound_score = -INT_MAX;
 
 	std::stable_sort(moves->begin(), moves->end(),
 		[pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr, nullptr, false); });
-	//std::cout << moves->size() << std::endl;
 	if (moves->size() == 0)
 	{
-		//std::cout << pos->pos_as_str() << std::endl;
 		delete moves;
-		return Evaluator::evaluate(pos);
+		int score = Evaluator::evaluate(pos);
+		pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		return score;
 	}
 	else
 	{
 		for (Move* const& move : *moves)
 		{
+			if (stand_pat != NO_VALUE) {
+				int delta = alpha - stand_pat - 200;
+				if (pos->position[move->target].value() < delta) {
+					continue;
+				}
+			}
 			pos->make_move(move);
 			int score = -this->quiescence(pos, -beta, -alpha, ply + 1);
 			if (score >= beta)
@@ -526,11 +581,13 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 					delete b;
 				}
 				delete moves;
+				pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, nullptr);
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
 			{
 				alpha = score; // alpha acts like max in MiniMax
+				flag = EXACT_SCORE;
 			}
 			pos->unmake_move();
 		}
@@ -540,5 +597,6 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 		}
 		delete moves;
 	}
+	pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
 	return alpha;
 }

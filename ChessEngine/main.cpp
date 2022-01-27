@@ -151,6 +151,9 @@ void uci_console() {
 			else if ((*split)[0] == "castling") {
 				std::cout << board.get_castling_rights() << std::endl;
 			}
+			else if ((*split)[0] == "clearhash") {
+				board.transposition_table->clear();
+			}
 			else if ((*split)[0] == "uci") {
 				std::cout << "id name Leandor" << std::endl;
 				std::cout << "id author Oliver Leenders" << std::endl;
