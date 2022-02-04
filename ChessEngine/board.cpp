@@ -2499,6 +2499,160 @@ void Board::promote_with_offset(std::vector<Move*>* moves, int i, int j, unsigne
 	}
 }
 
+bool Board::gives_check(Move* m)
+{
+	int origin = m->origin;
+	int target = m->target;
+	unsigned piece_type = this->position[origin].get_type();
+	int kp = this->white_to_move * this->black_king_pos + !this->white_to_move * this->white_king_pos;
+	if (piece_type <= 2) {
+		return false;
+	}
+	if (white_to_move) {
+		// sliding piece checks
+		if (piece_type == 5 || piece_type == 6 || piece_type == 3 || piece_type == 4) {
+			// vertical check
+			if (kp % 8 == target % 8) {
+				int min = std::min(kp, target) + 8;
+				int max = std::max(kp, target);
+				bool is_check = true;
+				for (; min < max; min += 8) {
+					if (!this->position[min].is_empty()) {
+						is_check = false;
+						break;
+					} 
+				}
+				if (is_check) {
+					return true;
+				}
+			}
+			// horizontal check
+			else if (kp / 8 == target / 8) {
+				int min = std::min(kp, target) + 1;
+				int max = std::max(kp, target);
+				bool is_check = true;
+				for (; min < max; min++) {
+					if (!this->position[min].is_empty()) {
+						is_check = false;
+						break;
+					}
+				}
+				if (is_check) {
+					return true;
+				}
+			}
+		}
+		else if (piece_type == 7 || piece_type == 8 ||  piece_type == 3 || piece_type == 4) {
+			// bottom left to top right
+			int min = std::min(kp, target);
+			int max = std::max(kp, target);
+			if (max - min % 9 == 0 && max % 8 > min % 8) {
+				min += 9;
+				bool is_check = true;
+				for (; min < max; min += 9) {
+					if (!this->position[min].is_empty()) {
+						is_check = false;
+						break;
+					}
+				}
+				if (is_check) {
+					return true;
+				}
+			}
+			else if (max - min % 7 == 0 && max % 8 < min % 8) {
+				min += 7; 
+				bool is_check = true;
+				for (; min < max; min += 7) {
+					if (!this->position[min].is_empty()) {
+						is_check = false;
+						break;
+					}
+				}
+				if (is_check) {
+					return true;
+				}
+			}
+		}
+		else if (piece_type == 9 || piece_type == 10) {
+			int max = std::max(kp, target);
+			int min = std::min(kp, target);
+			if ((std::abs(max % 8 - min % 8) == 2 && max / 8 - min / 8 == 1)
+				|| (std::abs(max % 8 - min % 8) == 1 && max / 8 - min / 8 == 2)) {
+				return true;
+			}
+		}
+		else if (piece_type == 11) {
+			if (std::abs(target % 8 - kp % 8) == 1 && kp / 8 - target / 8 == 1) {
+				return true;
+			}
+		}
+		else if (piece_type == 12) {
+			if (std::abs(target % 8 - kp % 8) == 1 && kp / 8 - target / 8 == -1) {
+				return true;
+			}
+		}
+		
+	}
+	else {
+		int max = std::max(origin, kp);
+		int min = std::min(origin, kp);
+		if (origin % 8 == kp % 8) {
+			int direction = (-1) * (origin < kp) + (origin > kp);
+			for (int i = kp + direction * 8; i >= 0 && i < 64; i += direction * 8) {
+				if (!this->position[i].is_empty()) {
+					unsigned type = this->position[i].get_type();
+					if ((this->white_to_move && (type == 3 || type == 5))
+						|| (!this->white_to_move && (type == 4 || type == 6))) {
+						return true;
+					}
+					break;
+				}
+			}
+		}
+		else if (origin / 8 == kp / 8) {
+			int direction = (-1) * (origin < kp) + (origin > kp);
+			for (int i = kp + direction; (direction > 0 && i % 8 != 0) && (direction < 0 && i % 8 != 7); i += direction) {
+				if (!this->position[i].is_empty()) {
+					unsigned type = this->position[i].get_type();
+					if ((this->white_to_move && (type == 3 || type == 5))
+						|| (!this->white_to_move && (type == 4 || type == 6))) {
+						return true;
+					}
+					break;
+				}
+			}
+		}
+		else if (max - min % 9 == 0 && max % 8 > min % 8) {
+			int direction = (-1) * (origin < kp) + (origin > kp);
+			for (int i = kp + direction * 9; i >= 0 && i < 64 && (direction > 0 && i % 8 != 0) && (direction < 0 && i % 8 != 7); kp += direction * 9) {
+				if (!this->position[i].is_empty()) {
+					unsigned type = this->position[i].get_type();
+					if ((this->white_to_move && (type == 3 || type == 7))
+						|| (!this->white_to_move && (type == 4 || type == 8))) {
+						return true;
+					}
+					break;
+				}
+			}
+		}
+		else if (max - min % 7 == 0 && max % 8 < min % 8) {
+			int direction = (-1) * (origin < kp) + (origin > kp);
+			for (int i = kp + direction * 7; i >= 0 && i < 64 
+				&& (direction < 0 && i % 8 != 0) && (direction > 0 && i % 8 != 7); kp += direction * 7) {
+				if (!this->position[i].is_empty()) {
+					unsigned type = this->position[i].get_type();
+					if ((this->white_to_move && (type == 3 || type == 7))
+						|| (!this->white_to_move && (type == 4 || type == 8))) {
+						return true;
+					}
+					break;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 /**
  * @brief changes the side to move
  *

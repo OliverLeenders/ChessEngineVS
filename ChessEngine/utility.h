@@ -3,6 +3,7 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <iostream>
 class Utility
 {
 public:
@@ -12,6 +13,7 @@ public:
 		return (T(0) < val) - (val < T(0));
 	}
 	uint64_t random_64_bit_num();
+	bool random_bool();
 	static void split_string(std::vector<std::string>* v, std::string s);
 	~Utility();
 private:

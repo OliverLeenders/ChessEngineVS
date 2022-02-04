@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 constexpr int PV_SCORE = 300000;
+constexpr int CHECK_SCORE = 250000;
 constexpr int CAPTURE_SCORE = 200000;
 constexpr int KILLER_MOVE_ONE = 100000;
 constexpr int KILLER_MOVE_TWO = 90000;
@@ -28,7 +29,7 @@ public:
 
 private:
 	static const int INITIAL_MATERIAL_VALUE = 4572;
-	
+	static Utility util;
 	static int open_files[2][8];
 	static bool passed_pawns[2][8];
 	static int PawnTable[64];

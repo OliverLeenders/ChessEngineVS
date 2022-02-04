@@ -70,6 +70,7 @@ public:
 	std::list<int> knight_list;
 	std::list<int> pawn_list;
 	
+	bool gives_check(Move* m);
 	// 50 move rule counter
 	int fifty_move_rule_counter = 0;
 	int full_move_counter = 0;

@@ -66,7 +66,7 @@ int Search::evaluate(Board* pos, unsigned int depth)
 		delete v;
 	}
 	killer_moves->clear();
-	pos->transposition_table->switch_prev();
+	pos->transposition_table->clear();
 	Evaluator::reset_history();
 	delete PV;
 	return res;
@@ -85,7 +85,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	std::string best_move = "NOMOVE";
 	stop_now = false;
 	int res = 0;
-	for (int i = 1; i <= depth && (!stop_now); i++) {
+	for (int i = 1; i <= (int) depth && (!stop_now); i++) {
 		this->search_depth = depth;
 		this->node_count = 0;
 		auto start = std::chrono::high_resolution_clock::now();
@@ -97,7 +97,19 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			this->killer_moves->push_back(v);
 		}
 
-		res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
+		// aspiration window = 50 cp
+		if (i != 1) {
+			int prelim_res = this->alpha_beta(pos, res - 50, res + 50, i, PV, 0, true);
+			if (std::abs(prelim_res - res) >= 50) {
+				res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
+			}
+			else {
+				res = prelim_res;
+			}
+		}
+		else {
+			res = this->alpha_beta(pos, -INT_MAX, INT_MAX, i, PV, 0, true);
+		}
 		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - start;
 		if (!stop_now) {
 			if (std::abs(res) < EVAL_SCORE_CUTOFF) {
@@ -144,6 +156,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	}
 	prev_pv->clear();
 	Evaluator::reset_history();
+	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->stop_now = true;
 	return res;
@@ -173,7 +186,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 
 		if (depth != 1) {
 			int prelim_res = this->alpha_beta(pos, res - 50, res + 50, depth, PV, 0, true);
-			if (std::abs(prelim_res - res) >= 25) {
+			if (std::abs(prelim_res - res) >= 50) {
 				res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
 			}
 			else {
@@ -182,6 +195,8 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 		}
 		else {
 			res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
+			std::cout << res << std::endl;
+			std::cout << PV->size() << std::endl;
 		}
 		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - start;
@@ -231,6 +246,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 	}
 	prev_pv->clear();
 	Evaluator::reset_history();
+	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->duration = std::chrono::milliseconds(INT32_MAX);
@@ -238,10 +254,15 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 	return res;
 }
 
+// 2022-02-02 19:35:13,952-->1:position startpos moves e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e6 e1g1 f8e7 f2f4 e8g8 c1e3 d8c7 a1c1 b8c6 d4c6 b7c6 e2f3 a8b8 b2b3 c8b7 d1d2 e6e5 c1d1 h7h5 f4e5 d6e5 a2a4 b8d8 d2f2 d8d1 f1d1 f8d8 d1d8 c7d8 f2g3 d8a5 c3d1 g7g6 g1h1 g8g7 h1g1 e7c5 c2c4 a5b6 g3f2 c5d4 e3d4 b6d4 f2d4 e5d4 d1f2 f6d7 f2d3 g7f6 a4a5 d7e5 d3c5 b7c8 f3e2 f6e7 g1f2 e7d6 b3b4 h5h4 g2g3 g6g5 c5b3 d4d3 c4c5 d6e7 e2f3 c8g4 b3d4 e7f6 f2e3 e5f3 d4f3 g4f3 e3f3 d3d2 f3e2 f6e5 e2d2 e5e4 g3h4 g5g4 h4h5 e4f5 d2e3 g4g3 h2g3 f7f6 b4b5 c6b5 c5c6 f5e6 c6c7 e6d7 h5h6 d7c7 h6h7 c7d6 h7h8q d6e5 h8c8 b5b4 c8a6 b4b3 a6b5 e5e6 a5a6 b3b2 a6a7 e6e7 a7a8q e7f7
+// 2022 - 02 - 02 19:35 : 13, 952-- > 1:go wtime 6320 btime 6213 winc 500 binc 500
+
+
 int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left, std::list<Move*>* PV, int ply, bool left_most)
 {
 	std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	if (stop_now || now - this->start_time >= this->duration) {
+		//std::cout << "stop here" << std::endl;
 		return 0;
 	}
 	// initializing hash flag
@@ -258,20 +279,51 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 		pos->compute_other_checks();
 		if (pos->num_checks != 0) {
 			this->search_depth++;
+			this->extended = true;
 			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
+			this->extended = false;
 			this->search_depth--;
 		}
 		int score = this->quiescence(pos, alpha, beta, ply);
-		pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		if (!active_zero_window) {
+			pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		}
 		return score;
 	}
 	else
 	{
 		// increment node counter
 		this->node_count++;
+
+		int score = 0;
+		bool draw_score = false;
+		// check for threefold repetition
+		int repetition_counter = 0;
+		// check 50-move rule
+		if (pos->fifty_move_rule_counter == 100) {
+			draw_score = true;
+			goto next;
+		}
+
+		// iterate backwards through moves stack to find repetitions
+		for (size_t history_index = pos->stack_moves->size() - 1; history_index != SIZE_MAX; history_index--) {
+			if (pos->stack_moves->at(history_index)->is_capture || pos->stack_moves->at(history_index)->is_pawn_push) {
+				goto next;
+			}
+			if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
+				repetition_counter++;
+			}
+			if (repetition_counter == 2) {
+				draw_score = true;
+				score = 0;
+				goto next;
+			}
+		}
+		
+		
+	next:
 		// get legal moves
 		std::vector<Move*>* moves = pos->possible_moves();
-		// sort moves
 
 
 		// if is checkmate
@@ -299,51 +351,38 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			killer_moves_at_depth = killer_moves->at(ply);
 		}
 
-		std::stable_sort(moves->begin(), moves->end(),
+		std::sort(moves->begin(), moves->end(),
 			[pos, this, depth_left, ply, pv_move, prev_best, killer_moves_at_depth, left_most]
 		(Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, prev_best, killer_moves_at_depth, left_most); });
 		bool is_check = pos->num_checks > 0;
-		// null move pruning
 
-		int score = 0;
-		bool draw_score = false;
-		// check for threefold repetition
-		int repetition_counter = 0;
-		// check 50-move rule
-		if (pos->fifty_move_rule_counter == 100) {
-			draw_score = true;
-			goto next;
-		}
-
-		// iterate backwards through moves stack
-		for (size_t history_index = pos->stack_moves->size() - 1; history_index != SIZE_MAX; history_index--) {
-			if (pos->stack_moves->at(history_index)->is_capture || pos->stack_moves->at(history_index)->is_pawn_push) {
-				goto next;
-			}
-			if (pos->stack_hashes->at(history_index) == pos->pos_hash) {
-				repetition_counter++;
-			}
-			if (repetition_counter == 2) {
-				draw_score = true;
-				score = 0;
-				goto next;
-			}
-		}
-	next:
 		Move* best_move = nullptr;
 		int lower_bound_score = -INT_MAX;
-
+		// if score is not 0 because of threefold repetition or 50 move rule
 		if (!draw_score) {
-
+			/*
+			// extend forced lines
+			if (depth_left == 1 && moves->size() == 1) {
+				delete moves->front();
+				delete moves;
+				this->search_depth++;
+				int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
+				this->search_depth--;
+				return score;
+			}*/
 			// null move pruning
-			int game_phase = 4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size();
+			int game_phase = (int) (4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size());
 
 			if (pos->num_checks == 0 && depth_left >= 3 && game_phase > 10) {
 				int pos_fifty = pos->fifty_move_rule_counter;
 				pos->fifty_move_rule_counter = 0;
 				pos->switch_move();
 				// null window search
-				int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - 2, PV, ply + 1, false);
+				int R = 2 * (depth_left <= 6) + 3 * (depth_left > 6 && depth_left <= 10) + 4 * (depth_left > 10);
+				active_zero_window = true;
+				int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - R, PV, ply + 1, false);
+				active_zero_window = false;
+
 				pos->switch_move();
 
 				pos->fifty_move_rule_counter = pos_fifty;
@@ -357,52 +396,87 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				}
 			}
 
-			// make move on board
-
+			// create sub PV line
 			std::list<Move*>* line = new std::list<Move*>();
+			// stand pat for futility pruning			
+			int stand_pat = Evaluator::evaluate(pos);
 			int i = 0;
+			// iterate through moves
 			for (Move* const& move : *moves)
 			{
+				bool gives_check = false;
+				
+				// futility pruning
+				if (depth_left == 1 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
+					if (stand_pat + 350 + pos->position[move->target].value() < alpha) {
+						// prune branch 
+						continue;
+					}
+				}
+				
+				// extended futility pruning
+				if (depth_left == 2 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
+					if (stand_pat + 550 + pos->position[move->target].value() < alpha) {
+						// prune branch 
+						continue;
+					}
+				}
+				
+				// history leaf pruning
+				
+				if (depth_left == 1) {
+					if (reduced && i != 0 && ply > 5 && !is_check && !move->is_capture && !gives_check) {
+						if (Evaluator::history[pos->position[move->origin].get_type() - 1][move->target] < ply + (i / (int) moves->size()) * ply) {
+							continue;
+						}
+					}
+				}
+				
+				// make move on board
 				pos->make_move(move);
-				// if score is not 0 because of threefold repetition
+				int R = 0
+					+ 1 * (depth_left >= 3 && i >= 5 && i < 7 && !is_check && !move->is_capture && !move->is_promotion && !extended && !gives_check)
+					+ (depth_left - depth_left / 3) * (depth_left >= 3 && i >= 7 && !is_check && !move->is_capture && !move->is_promotion && !extended && !gives_check);
 				if (left_most && ply < PV->size() && i == 0) {
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, true);
 				}
-
-				else if (depth_left < 3 || i < 5 || is_check || move->is_capture || move->is_promotion) {
-					if (depth_left == 1) {
-						if (reduced && i != 0 && ply > 5 && pos->num_checks == 0 && !move->is_capture) {
-							if (Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < ply) {
-								pos->unmake_move();
-								continue;
-							}
-						}
-					}
-					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
-				}
-				else {
-					if (i < 7) {
-						if (depth_left - 2 == 0 && ply > 5 && Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < 1.25 * ply) {
-							pos->unmake_move();
-							continue;
-						}
-						this->reduced = true;
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 2, line, ply + 1, left_most && i == 0);
-						this->reduced = false;
-					}
-					else {
-						if (depth_left / 3 == 0 && ply > 5 && Evaluator::history[pos->position[move->target].get_type() - 1][move->target] < 1.5 * ply) {
-							pos->unmake_move();
-						}
-						this->reduced = true;
-						score = -this->alpha_beta(pos, -beta, -alpha, depth_left / 3, line, ply + 1, left_most && i == 0);
-						this->reduced = false;
-					}
+				else if (flag == EXACT_SCORE) {
+					// peform PVS
+					// null-window search to test if move raises alpha
+					active_zero_window = true;
+					score = -this->alpha_beta(pos, -alpha - 1, -alpha, depth_left - R - 1, line, ply + 1, left_most && i == 0);
+					active_zero_window = false;
+					// if move raised alpha => re-search
 					if (score > alpha && score < beta) {
+						// clear best line
 						for (Move* const& lm : *line) {
 							delete lm;
 						}
 						line->clear();
+						// re-search
+						active_zero_window = true;
+						score = -this->alpha_beta(pos, -alpha - 1, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
+						active_zero_window = false;
+						if (score > alpha && score < beta) {
+							for (Move* const& lm : *line) {
+								delete lm;
+							}
+							line->clear();
+							score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
+						}
+					}
+				}
+				else {
+					// perform normal search
+					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - R - 1, line, ply + 1, left_most && i == 0);
+					// if depth was reduced and move raises alpha => re-search
+					if (score > alpha && score < beta && R > 0) {
+						// clear best line
+						for (Move* const& lm : *line) {
+							delete lm;
+						}
+						line->clear();
+						// re-search
 						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 					}
 				}
@@ -421,7 +495,9 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
-					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
+					if (!active_zero_window) {
+						pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
+					}
 					// cleanup
 					for (Move* const& imove : *moves)
 					{
@@ -480,11 +556,17 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			delete best_move;
 			return 0;
 		}
-		else {
-			pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, best_move->clone());
-			delete best_move;
-			return alpha;
+		else if (!active_zero_window)  {
+			if (best_move == nullptr) {
+				pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
+			}
+			else {
+				pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, best_move->clone());
+			}
+			
 		}
+		delete best_move;
+		return alpha;
 	} // endif 
 }
 /**
@@ -552,7 +634,7 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 	//Move* best_move = nullptr;
 	//int lower_bound_score = -INT_MAX;
 
-	std::stable_sort(moves->begin(), moves->end(),
+	std::sort(moves->begin(), moves->end(),
 		[pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr, nullptr, false); });
 	if (moves->size() == 0)
 	{
@@ -565,12 +647,14 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 	{
 		for (Move* const& move : *moves)
 		{
+			// delta pruning	
 			if (stand_pat != NO_VALUE) {
-				int delta = alpha - stand_pat - 200;
+				int delta = alpha - stand_pat - 250;
 				if (pos->position[move->target].value() < delta) {
 					continue;
 				}
 			}
+			// make move on board
 			pos->make_move(move);
 			int score = -this->quiescence(pos, -beta, -alpha, ply + 1);
 			if (score >= beta)

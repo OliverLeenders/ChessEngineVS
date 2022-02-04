@@ -27,6 +27,8 @@ public:
 
 	std::atomic<bool> stop_now = false;
 	bool reduced = false;
+	bool extended = false;
+	bool active_zero_window = false;
 	std::chrono::milliseconds start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	std::chrono::milliseconds duration = std::chrono::milliseconds(INT32_MAX);
 

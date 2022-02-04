@@ -24,7 +24,12 @@ uint64_t Utility::random_64_bit_num()
 	{
 		num = num * 2 + rand() % 2;
 	}
+	//std::cout << num << std::endl;
 	return num;
+}
+
+bool Utility::random_bool() {
+	return rand() % 2;
 }
 
 /**
