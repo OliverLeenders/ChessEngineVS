@@ -23,6 +23,10 @@ Moved from ChessEngine repo which was compiled using gcc for linux, to new repo 
 
 ## usage
 
+### Binaries
+
+Pre-compiled binaries for Windows Systems only are available in the releases section. Other systems are not officially supported, however, you can try to compile for them yourself.
+
 ### entering a position 
 
 The engine understands the following commands:
