@@ -32,6 +32,12 @@ The engine understands the following commands:
 ### Calculating
 
 ```go movetime <number of milliseconds>``` -- search n milliseconds
+
 ```go depth <depth>``` -- search to depth n
+
+```gp wtime <ms> btime <ms> winc <ms> binc <ms>``` syntax for standard time controls with increment
+
+```go infinite``` search until being told to stop
+
 ```stop``` -- stop calculating
 ```quit``` -- exit program
