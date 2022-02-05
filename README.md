@@ -45,3 +45,8 @@ The engine understands the following commands:
 
 ```stop``` -- stop calculating
 ```quit``` -- exit program
+
+### Note
+
+UCI options -- only option that changes something is "Move Overhead" 
+Program will always use 2 threads -- 1 thread for search and 1 thread for handling inputs while searching. The UCI threads option as well as hash-size are not currently doing anything
