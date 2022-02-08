@@ -317,6 +317,12 @@ int Board::set_piece(unsigned type, int pos)
 	this->position[pos].set_piece_type(type);
 	return 0;
 }
+
+void Board::set_hash_size(int set_size) {
+	delete this->transposition_table;
+	this->transposition_table = new zobrist_hashmap(set_size * 1000000 / (2 * sizeof(hash_entry)));
+}
+
 /**
  * @brief Destroy the Board:: Board object and release memory
  *
@@ -3150,7 +3156,7 @@ void Board::unmake_move() {
 	for (int i = 0; i < 4; i++) {
 		this->castling_rights[i] = castling_rights_old[i];
 	}
-	delete castling_rights_old;
+	delete[] castling_rights_old;
 
 	unsigned capture_type = this->stack_captures->back();
 	this->stack_captures->pop_back();

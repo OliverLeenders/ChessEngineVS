@@ -109,10 +109,12 @@ void ni_search(Board* b, int depth, Search* s) {
  *
  */
 void uci_console() {
+	std::cout << sizeof(hash_entry) << std::endl;
 	Evaluator::init_tables();
 	zobrist_hashmap::init_bases();
 	int move_overhead = 25;
 	Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	board.set_hash_size(256);
 	std::cout << "UCI console -- Ready to take commands..." << std::endl;
 	bool is_calculating = false;
 	bool has_just_finished = false;
@@ -155,11 +157,11 @@ void uci_console() {
 				board.transposition_table->clear();
 			}
 			else if ((*split)[0] == "uci") {
-				std::cout << "id name Leandor" << std::endl;
+				std::cout << "id name Leandor v1.1" << std::endl;
 				std::cout << "id author Oliver Leenders" << std::endl;
 				std::cout << "option name Move Overhead type spin default 25 min 0 max 5000" << std::endl;
 				std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
-				std::cout << "option name Hash type spin default 256 min 256 max 256" << std::endl;
+				std::cout << "option name Hash type spin default 16 min 256 max 2048" << std::endl;
 				std::cout << "uciok" << std::endl;
 			}
 			else if ((*split)[0] == "isready") {
@@ -170,6 +172,11 @@ void uci_console() {
 				if (new_overhead >= 0 && new_overhead <= 5000) {
 					move_overhead = new_overhead;
 				}
+
+			} else if ((*split).size() >= 5 && (*split)[0] == "setoption" && (*split)[1] == "name" && (*split)[2] == "Hash" && (*split)[3] == "value") {
+				int new_size = std::max(16, std::min(2048, std::stoi((*split)[4])));
+				std::cout << new_size << std::endl;
+				board.set_hash_size(new_size);
 			}
 			else if ((*split)[0] == "unmake") {
 				board.unmake_move();

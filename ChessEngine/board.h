@@ -42,6 +42,7 @@ private:
 public:
 	Board();
 	Board(std::string fen);
+	void set_hash_size(int set_size);
 	void set_pos_from_fen(std::string fen);
 	
 	

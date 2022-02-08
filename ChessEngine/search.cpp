@@ -128,7 +128,6 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			std::cout << " depth " << i;
 
 			std::cout << std::endl;
-
 			best_move = PV->front()->to_string();
 		}
 		for (Move* const& move : *this->prev_pv) {
@@ -495,9 +494,9 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
-					if (!active_zero_window) {
-						pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
-					}
+						
+					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
+					
 					// cleanup
 					for (Move* const& imove : *moves)
 					{
@@ -551,7 +550,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			delete line;
 		}
 
-		if (draw_score) {
+		if (draw_score && !active_zero_window) {
 			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, nullptr);
 			delete best_move;
 			return 0;
@@ -607,7 +606,9 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 				delete m;
 			}
 			delete moves;
-			pos->transposition_table->record_hash(pos->pos_hash, ply, stand_pat, LOWER_BOUND, nullptr);
+			if (!active_zero_window) {
+				pos->transposition_table->record_hash(pos->pos_hash, ply, stand_pat, LOWER_BOUND, nullptr);
+			}
 			return beta;
 		}
 		else if (stand_pat > alpha)
@@ -665,7 +666,9 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 					delete b;
 				}
 				delete moves;
-				pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, nullptr);
+				if (!active_zero_window) {
+					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, nullptr);
+				}
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
@@ -681,6 +684,8 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 		}
 		delete moves;
 	}
-	pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
+	if (!active_zero_window) {
+		pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
+	}
 	return alpha;
 }

@@ -17,7 +17,7 @@ public:
 	int ply;
 	int flag;
 	unsigned times_hit = 0;
-	Move* best_move;
+	Move best_move;
 	~hash_entry();
 }; 
 

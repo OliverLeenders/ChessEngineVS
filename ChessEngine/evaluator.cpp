@@ -357,6 +357,9 @@ int Evaluator::score_quiet_move(Board* pos, Move* m) {
 int Evaluator::score_capture(Board* pos, Move* move) {
 	int origin = move->origin;
 	int target = move->target;
+	if (move->is_promotion) {
+		return pos->position[target].value() - pos->position[origin].value() + eg_value[move->promotion_type] + CAPTURE_SCORE;
+	}
 	return pos->position[target].value() - pos->position[origin].value() + CAPTURE_SCORE;
 }
 
@@ -373,7 +376,7 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best
 	int wkp = pos->white_king_pos;
 	int bkp = pos->black_king_pos;
 	unsigned piece_type = pos->position[origin].get_type();
-	if (move->is_capture) {
+	if (move->is_capture || move->is_promotion) {
 		// score capture
 		return score_capture(pos, move) + score_quiet_move(pos, move);
 	}
