@@ -10,10 +10,11 @@ constexpr int VAL_UNKNOWN = 2000000;
 class hash_entry
 {
 public:
-	hash_entry(uint64_t z_key ,int set_score, int ply, int set_flag, Move* set_best_move);
+	hash_entry(uint64_t z_key ,int set_score, int depth_left, int ply, int set_flag, Move* set_best_move);
 	hash_entry();
 	uint64_t key;
 	int score;
+	int depth_left;
 	int ply;
 	int flag;
 	unsigned times_hit = 0;

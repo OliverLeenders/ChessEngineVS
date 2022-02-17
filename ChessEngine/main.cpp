@@ -109,9 +109,10 @@ void ni_search(Board* b, int depth, Search* s) {
  *
  */
 void uci_console() {
-	std::cout << sizeof(hash_entry) << std::endl;
 	Evaluator::init_tables();
 	zobrist_hashmap::init_bases();
+
+	srand((unsigned)time(0));
 	int move_overhead = 25;
 	Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	board.set_hash_size(256);
@@ -161,7 +162,7 @@ void uci_console() {
 				std::cout << "id author Oliver Leenders" << std::endl;
 				std::cout << "option name Move Overhead type spin default 25 min 0 max 5000" << std::endl;
 				std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
-				std::cout << "option name Hash type spin default 16 min 256 max 2048" << std::endl;
+				std::cout << "option name Hash type spin default 256 min 16 max 2048" << std::endl;
 				std::cout << "uciok" << std::endl;
 			}
 			else if ((*split)[0] == "isready") {

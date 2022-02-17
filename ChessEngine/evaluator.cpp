@@ -369,7 +369,7 @@ int Evaluator::score_move(Board* pos, Move* move, Move* pv_move, Move* prev_best
 	}
 	else if (prev_best != nullptr && prev_best->equals(move)) {
 		//std::cout << prev_best->to_string() << std::endl;
-		return PV_SCORE;
+		return PREV_BEST_SCORE;
 	}
 	int origin = move->origin;
 	int target = move->target;

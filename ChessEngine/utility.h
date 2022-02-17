@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <random>
+#include <functional>
 class Utility
 {
 public:

@@ -320,7 +320,7 @@ int Board::set_piece(unsigned type, int pos)
 
 void Board::set_hash_size(int set_size) {
 	delete this->transposition_table;
-	this->transposition_table = new zobrist_hashmap(set_size * 1000000 / (2 * sizeof(hash_entry)));
+	this->transposition_table = new zobrist_hashmap(set_size * 1000000 / sizeof(hash_entry));
 }
 
 /**
@@ -2666,6 +2666,7 @@ bool Board::gives_check(Move* m)
 void Board::switch_move()
 {
 	this->white_to_move = !(this->white_to_move);
+	
 }
 
 std::string Board::pos_as_str()

@@ -85,7 +85,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 	std::string best_move = "NOMOVE";
 	stop_now = false;
 	int res = 0;
-	for (int i = 1; i <= (int) depth && (!stop_now); i++) {
+	for (int i = 1; i <= (int)depth && (!stop_now); i++) {
 		this->search_depth = depth;
 		this->node_count = 0;
 		auto start = std::chrono::high_resolution_clock::now();
@@ -126,6 +126,7 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			std::cout << "nodes " << this->node_count;
 			std::cout << " nps " << (int)(this->node_count / duration.count());
 			std::cout << " depth " << i;
+			std::cout << " hashfull " << (int)(1000.0 * (pos->transposition_table->count / (double)pos->transposition_table->size));
 
 			std::cout << std::endl;
 			best_move = PV->front()->to_string();
@@ -148,14 +149,12 @@ int Search::evaluate_iterative_deepening(Board* pos, unsigned int depth)
 			delete v;
 		}
 		killer_moves->clear();
-		pos->transposition_table->switch_prev();
 	}
 	for (Move* const& m : *this->prev_pv) {
 		delete m;
 	}
 	prev_pv->clear();
 	Evaluator::reset_history();
-	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->stop_now = true;
 	return res;
@@ -194,8 +193,6 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 		}
 		else {
 			res = this->alpha_beta(pos, -INT_MAX, INT_MAX, depth, PV, 0, true);
-			std::cout << res << std::endl;
-			std::cout << PV->size() << std::endl;
 		}
 		std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - start;
@@ -214,7 +211,7 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			std::cout << "nodes " << this->node_count;
 			std::cout << " nps " << (int)(this->node_count / duration.count());
 			std::cout << " depth " << depth;
-
+			std::cout << " hashfull " << (int)(1000.0 * (pos->transposition_table->count / (double)pos->transposition_table->size));
 			std::cout << std::endl;
 
 			best_move = PV->front()->to_string();
@@ -237,7 +234,6 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 			delete v;
 		}
 		killer_moves->clear();
-		pos->transposition_table->switch_prev();
 		depth++;
 	}
 	for (Move* const& m : *this->prev_pv) {
@@ -245,7 +241,6 @@ int Search::evaluate_iterative_deepening_time(Board* pos, int ms)
 	}
 	prev_pv->clear();
 	Evaluator::reset_history();
-	pos->transposition_table->clear();
 	std::cout << "bestmove " << best_move << "\n" << std::endl;
 	this->start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->duration = std::chrono::milliseconds(INT32_MAX);
@@ -267,7 +262,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 	// initializing hash flag
 	int flag = UPPER_BOUND;
 	// checking TT
-	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, ply, alpha, beta);
+	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, depth_left, ply, alpha, beta);
 	if (hash_score != VAL_UNKNOWN && (hash_score <= alpha || hash_score >= beta)) {
 		return hash_score;
 	}
@@ -276,17 +271,18 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 	{
 		pos->compute_pin_rays();
 		pos->compute_other_checks();
+		int score;
 		if (pos->num_checks != 0) {
 			this->search_depth++;
 			this->extended = true;
-			int score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
+			score = this->alpha_beta(pos, alpha, beta, depth_left + 1, PV, ply, left_most);
 			this->extended = false;
 			this->search_depth--;
 		}
-		int score = this->quiescence(pos, alpha, beta, ply);
-		if (!active_zero_window) {
-			pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		else {
+			score = this->quiescence(pos, alpha, beta, ply);
 		}
+
 		return score;
 	}
 	else
@@ -318,25 +314,24 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				goto next;
 			}
 		}
-		
-		
+
+
 	next:
 		// get legal moves
 		std::vector<Move*>* moves = pos->possible_moves();
-
 
 		// if is checkmate
 		if (moves->size() == 0 && pos->num_checks > 0)
 		{
 			delete moves;
-			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
+			pos->transposition_table->record_hash(pos->pos_hash, depth_left, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
 			return -MATE_IN_ZERO + ply;
 		}
 		// if is stalemate
 		else if (moves->size() == 0)
 		{
 			delete moves;
-			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
+			pos->transposition_table->record_hash(pos->pos_hash, depth_left, ply, 0, EXACT_SCORE, nullptr);
 			return 0;
 		}
 		Move* pv_move = nullptr;
@@ -350,12 +345,12 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			killer_moves_at_depth = killer_moves->at(ply);
 		}
 
-		std::sort(moves->begin(), moves->end(),
+		std::stable_sort(moves->begin(), moves->end(),
 			[pos, this, depth_left, ply, pv_move, prev_best, killer_moves_at_depth, left_most]
 		(Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, pv_move, prev_best, killer_moves_at_depth, left_most); });
 		bool is_check = pos->num_checks > 0;
 
-		Move* best_move = nullptr;
+		Move* best_move = new Move(0, 0, false, false, false, 0U);
 		int lower_bound_score = -INT_MAX;
 		// if score is not 0 because of threefold repetition or 50 move rule
 		if (!draw_score) {
@@ -370,17 +365,20 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				return score;
 			}*/
 			// null move pruning
-			int game_phase = (int) (4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size());
-
+			int game_phase = (int)(4 * pos->queen_list.size() + 2 * pos->rook_list.size() + pos->bishop_list.size() + pos->knight_list.size());
 			if (pos->num_checks == 0 && depth_left >= 3 && game_phase > 10) {
 				int pos_fifty = pos->fifty_move_rule_counter;
 				pos->fifty_move_rule_counter = 0;
 				pos->switch_move();
+				uint64_t prev_hash = pos->pos_hash;
+				pos->pos_hash = pos->hash(pos);
 				// null window search
 				int R = 2 * (depth_left <= 6) + 3 * (depth_left > 6 && depth_left <= 10) + 4 * (depth_left > 10);
 				active_zero_window = true;
 				int score = -alpha_beta(pos, -beta, -beta + 1, depth_left - 1 - R, PV, ply + 1, false);
 				active_zero_window = false;
+
+				pos->pos_hash = prev_hash;
 
 				pos->switch_move();
 
@@ -394,7 +392,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					return beta;
 				}
 			}
-
+		
 			// create sub PV line
 			std::list<Move*>* line = new std::list<Move*>();
 			// stand pat for futility pruning			
@@ -404,33 +402,31 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			for (Move* const& move : *moves)
 			{
 				bool gives_check = false;
-				
 				// futility pruning
-				if (depth_left == 1 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
-					if (stand_pat + 350 + pos->position[move->target].value() < alpha) {
+				if (lower_bound_score != -INT_MAX && depth_left == 1 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
+					if (stand_pat + 250 + pos->position[move->target].value() < alpha) {
 						// prune branch 
 						continue;
 					}
 				}
-				
+
 				// extended futility pruning
-				if (depth_left == 2 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
-					if (stand_pat + 550 + pos->position[move->target].value() < alpha) {
+				if (lower_bound_score != -INT_MAX && depth_left == 2 && !is_check && !move->is_capture && !move->is_promotion && !gives_check) {
+					if (stand_pat + 450 + pos->position[move->target].value() < alpha) {
 						// prune branch 
 						continue;
 					}
 				}
-				
+
 				// history leaf pruning
-				
-				if (depth_left == 1) {
-					if (reduced && i != 0 && ply > 5 && !is_check && !move->is_capture && !gives_check) {
-						if (Evaluator::history[pos->position[move->origin].get_type() - 1][move->target] < ply + (i / (int) moves->size()) * ply) {
+				if (lower_bound_score != -INT_MAX && depth_left == 1) {
+					if (reduced && i != 0 && ply > 5 && !is_check && !move->is_capture && !gives_check && !move->is_promotion) {
+						if (Evaluator::history[pos->position[move->origin].get_type() - 1][move->target] < ply + (i / (int)moves->size()) * ply) {
 							continue;
 						}
 					}
 				}
-				
+
 				// make move on board
 				pos->make_move(move);
 				int R = 0
@@ -439,14 +435,15 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 				if (left_most && ply < PV->size() && i == 0) {
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, true);
 				}
-				else if (flag == EXACT_SCORE) {
+				
+				else if (flag == EXACT_SCORE && !active_zero_window) {
 					// peform PVS
 					// null-window search to test if move raises alpha
 					active_zero_window = true;
 					score = -this->alpha_beta(pos, -alpha - 1, -alpha, depth_left - R - 1, line, ply + 1, left_most && i == 0);
 					active_zero_window = false;
 					// if move raised alpha => re-search
-					if (score > alpha && score < beta) {
+					if (score > alpha && score < beta && R > 0) {
 						// clear best line
 						for (Move* const& lm : *line) {
 							delete lm;
@@ -464,7 +461,15 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 							score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
 						}
 					}
+					else if (score > alpha && score < beta) {
+						for (Move* const& lm : *line) {
+							delete lm;
+						}
+						line->clear();
+						score = -this->alpha_beta(pos, -beta, -alpha, depth_left - 1, line, ply + 1, left_most && i == 0);
+					}
 				}
+				
 				else {
 					// perform normal search
 					score = -this->alpha_beta(pos, -beta, -alpha, depth_left - R - 1, line, ply + 1, left_most && i == 0);
@@ -494,9 +499,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 						this->killer_moves->at(ply)->at(1) = this->killer_moves->at(ply)->at(0);
 						this->killer_moves->at(ply)->at(0) = move->clone();
 					}
-						
-					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, best_move->clone());
-					
+					pos->transposition_table->record_hash(pos->pos_hash, depth_left, ply, score, LOWER_BOUND, best_move);
 					// cleanup
 					for (Move* const& imove : *moves)
 					{
@@ -510,7 +513,7 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 					delete moves;
 
 					delete best_move;
-					return beta;
+					return score;
 					//  fail hard beta-cutoff
 				}
 				// score is inside alpha-beta window (PV Node)
@@ -550,24 +553,23 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
 			delete line;
 		}
 
-		if (draw_score && !active_zero_window) {
-			pos->transposition_table->record_hash(pos->pos_hash, ply, score, flag, nullptr);
+
+		if (draw_score) {
 			delete best_move;
 			return 0;
 		}
-		else if (!active_zero_window)  {
-			if (best_move == nullptr) {
-				pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
-			}
-			else {
-				pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, best_move->clone());
-			}
-			
-		}
+		pos->transposition_table->record_hash(pos->pos_hash, depth_left, ply, lower_bound_score, flag, best_move);
 		delete best_move;
-		return alpha;
+		return lower_bound_score;
 	} // endif 
 }
+
+// BUG ALERT
+// position startpos moves d2d4 g8f6 c2c4 b8c6 b1c3 e7e5 d4d5 c6b4 a2a3 b4a6 e2e4 f8d6 f1e2 a6c5 c1g5 a7a5 g1f3 h8f8 e1g1 h7h6 g5f6 d8f6 b2b4 a5b4 a3b4 a8a1 d1a1 c5b3 a1b2 b3d4 c4c5 d6e7 f3d4 e7c5 b4c5 e5d4 c3a4 f6f4 e2f3 d7d6 c5d6
+// position startpos moves e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 g8f6 e4f6 e7f6 c1f4 f8d6 f4d6 d8d6 d1d2 e8g8 e1c1 c8e6 g1f3 e6a2 b2b4 a7a5 c2c3 a5b4 c1b2 a2b3 d1a1 b4c3 d2c3 a8a1 b2a1 d6a3 a1b1 f8d8 f1d3 a3a2 b1c1 a2f2 c3b3 f2g2 h1e1 g2g4 e1e7 g4h5 e7b7 d8e8 b7b8 h5h6 c1b1 h6e3 b8e8 e3e8 b3c3 g7g6 b1c2 e8e6 h2h3 e6h3 c3c6 g8g7 d3g6 h7g6 c6e4 h3c8 c2d3 c8a6 d3e3 a6a3 e3f2 a3b4 f2g3 b4c4 g3g2 c4a2 g2g3 a2a4 e4f4 a4c6 g3g2 c6d5 f4g4 d5b7 g2g3 b7c6 g3g2 c6c2 g2g3 c2c7 g3f2 c7a7 f2g2 a7a2 g2h3 a2e2 h3g3 e2b5 g4h4 b5d5 h4g4 g6g5 g3g2 g7g8 g4c8 g8h7 g2g3 d5e4 c8f8 e4e6 f8d8 e6f5 d8e8 f5f4 g3f2 h7g7 e8e3 f4g4 e3e8 g4f5 f2g2 g5g4 f3e1 f5d5 g2g3 d5d4 e1g2 f6f5 e8e7 d4f6 e7f6 g7f6 g3f4 f6e6 g2e3 g4g3 f4g3 e6e5 g3f3 e5e6 f3f4 e6f6 e3f5 f6e6 f4e4 e6f6 e4f4 f6e6 f4e4 e6f6 f5d4 f6g6 e4f4 g6f6 f4e4 f6g6 e4f4 g6f6
+// position startpos moves d2d4 g8f6 c2c4 e7e6 g1f3 f8b4 c1d2 d8e7 g2g3 b8c6 f1g2 e6e5 d4e5 c6e5 e1g1 e5c4 d2b4 e7b4 b1d2 c4d2 d1d2 b4d2 f3d2 d7d5 f1e1 c8e6 d2f3 a8d8 f3d4 c7c6 d4e6 f7e6 a1d1 h8f8 g2f3 e8f7 a2a4 a7a5 d1c1 f6e4 e1d1 f7f6 h2h4 f8e8 h4h5 e6e5 f3g2 f6f5 b2b3 d5d4 g3g4 f5f4 e2e3 d4e3 f2e3 f4g4 g2e4 g4h5 d1d8 e8d8 c1c5 d8e8 c5a5 h7h6 a5a7 e8b8 b3b4 g7g5 a7a5 b8e8 b4b5 c6b5 a5b5 h5g4 e4b7 e8d8 b5e5 g4g3 b7d5 d8c8 g1f1 c8c2 e3e4 g5g4 a4a5 c2c1 f1e2 c1a1 d5b7 a1a2 e2d3 g3f2 e5c5 g4g3 e4e5 a2a3 d3c4 g3g2 b7g2 f2g2 e5e6 a3a1 c4d5 g2f2 e6e7 a1e1 c5c7 f2g3 a5a6 g3f4 a6a7 e1d1 d5c6 d1c1 c6d7 c1d1 d7e8 d1f1 a7a8q f4e5 e8d8 f1d1 c7d7 d1d7 d8d7 e5d4 a8c6 d4e5 e7e8q e5f4
+// position fen r1bq1rk1/ppp2pb1/3p1npp/6B1/3Q4/2N3P1/PPP1PPBP/R4RK1 w - - 0 11
+
 /**
  * @brief performs a quiescence search such that only "quiet" positions are evaluated
  *
@@ -577,19 +579,14 @@ int Search::alpha_beta(Board* pos, int alpha, int beta, unsigned int depth_left,
  * @param e evaluator object
  * @return int evaluation
  */
-
- // BUG ALERT
- // position startpos moves d2d4 g8f6 c2c4 b8c6 b1c3 e7e5 d4d5 c6b4 a2a3 b4a6 e2e4 f8d6 f1e2 a6c5 c1g5 a7a5 g1f3 h8f8 e1g1 h7h6 g5f6 d8f6 b2b4 a5b4 a3b4 a8a1 d1a1 c5b3 a1b2 b3d4 c4c5 d6e7 f3d4 e7c5 b4c5 e5d4 c3a4 f6f4 e2f3 d7d6 c5d6
- // position startpos moves e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 g8f6 e4f6 e7f6 c1f4 f8d6 f4d6 d8d6 d1d2 e8g8 e1c1 c8e6 g1f3 e6a2 b2b4 a7a5 c2c3 a5b4 c1b2 a2b3 d1a1 b4c3 d2c3 a8a1 b2a1 d6a3 a1b1 f8d8 f1d3 a3a2 b1c1 a2f2 c3b3 f2g2 h1e1 g2g4 e1e7 g4h5 e7b7 d8e8 b7b8 h5h6 c1b1 h6e3 b8e8 e3e8 b3c3 g7g6 b1c2 e8e6 h2h3 e6h3 c3c6 g8g7 d3g6 h7g6 c6e4 h3c8 c2d3 c8a6 d3e3 a6a3 e3f2 a3b4 f2g3 b4c4 g3g2 c4a2 g2g3 a2a4 e4f4 a4c6 g3g2 c6d5 f4g4 d5b7 g2g3 b7c6 g3g2 c6c2 g2g3 c2c7 g3f2 c7a7 f2g2 a7a2 g2h3 a2e2 h3g3 e2b5 g4h4 b5d5 h4g4 g6g5 g3g2 g7g8 g4c8 g8h7 g2g3 d5e4 c8f8 e4e6 f8d8 e6f5 d8e8 f5f4 g3f2 h7g7 e8e3 f4g4 e3e8 g4f5 f2g2 g5g4 f3e1 f5d5 g2g3 d5d4 e1g2 f6f5 e8e7 d4f6 e7f6 g7f6 g3f4 f6e6 g2e3 g4g3 f4g3 e6e5 g3f3 e5e6 f3f4 e6f6 e3f5 f6e6 f4e4 e6f6 e4f4 f6e6 f4e4 e6f6 f5d4 f6g6 e4f4 g6f6 f4e4 f6g6 e4f4 g6f6
-
 int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 {
 	// increase node count
 	// std::cout << "quiescence" << std::endl;
 	int flag = UPPER_BOUND;
 	this->node_count++;
-	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, ply, alpha, beta);
-	if (hash_score != VAL_UNKNOWN && (hash_score <= alpha || hash_score >= beta)) {
+	int hash_score = pos->transposition_table->probe_hash(pos->pos_hash, this->search_depth - ply, ply, alpha, beta);
+	if (hash_score != VAL_UNKNOWN) {
 		return hash_score;
 	}
 	std::vector<Move*>* moves = pos->get_legal_captures();
@@ -606,9 +603,7 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 				delete m;
 			}
 			delete moves;
-			if (!active_zero_window) {
-				pos->transposition_table->record_hash(pos->pos_hash, ply, stand_pat, LOWER_BOUND, nullptr);
-			}
+			pos->transposition_table->record_hash(pos->pos_hash, 0, ply, stand_pat, LOWER_BOUND, nullptr);
 			return beta;
 		}
 		else if (stand_pat > alpha)
@@ -627,13 +622,13 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 
 		if (moves->size() == 0) {
 			delete moves;
-			pos->transposition_table->record_hash(pos->pos_hash, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
+			pos->transposition_table->record_hash(pos->pos_hash, 0, ply, -MATE_IN_ZERO + ply, EXACT_SCORE, nullptr);
 			return -MATE_IN_ZERO + ply;
 		}
 	}
 
-	//Move* best_move = nullptr;
-	//int lower_bound_score = -INT_MAX;
+	Move* best_move = new Move(0, 0, false, false, false, 0U);
+	int lower_bound_score = -INT_MAX;
 
 	std::sort(moves->begin(), moves->end(),
 		[pos, this](Move* m_1, Move* m_2) -> bool {return Evaluator::compare(pos, m_1, m_2, nullptr, nullptr, nullptr, false); });
@@ -641,7 +636,8 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 	{
 		delete moves;
 		int score = Evaluator::evaluate(pos);
-		pos->transposition_table->record_hash(pos->pos_hash, ply, score, EXACT_SCORE, nullptr);
+		pos->transposition_table->record_hash(pos->pos_hash, 0, ply, score, EXACT_SCORE, nullptr);
+		delete best_move;
 		return score;
 	}
 	else
@@ -649,6 +645,7 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 		for (Move* const& move : *moves)
 		{
 			// delta pruning	
+
 			if (stand_pat != NO_VALUE) {
 				int delta = alpha - stand_pat - 250;
 				if (pos->position[move->target].value() < delta) {
@@ -658,6 +655,11 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 			// make move on board
 			pos->make_move(move);
 			int score = -this->quiescence(pos, -beta, -alpha, ply + 1);
+			if (score > lower_bound_score) {
+				lower_bound_score = score;
+				delete best_move;
+				best_move = move->clone();
+			}
 			if (score >= beta)
 			{
 				pos->unmake_move();
@@ -666,9 +668,8 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 					delete b;
 				}
 				delete moves;
-				if (!active_zero_window) {
-					pos->transposition_table->record_hash(pos->pos_hash, ply, score, LOWER_BOUND, nullptr);
-				}
+				pos->transposition_table->record_hash(pos->pos_hash, 0, ply, score, LOWER_BOUND, best_move);
+				delete best_move;
 				return beta; // fail hard beta-cutoff
 			}
 			if (score > alpha)
@@ -684,8 +685,7 @@ int Search::quiescence(Board* pos, int alpha, int beta, int ply)
 		}
 		delete moves;
 	}
-	if (!active_zero_window) {
-		pos->transposition_table->record_hash(pos->pos_hash, ply, alpha, flag, nullptr);
-	}
+	pos->transposition_table->record_hash(pos->pos_hash, 0, ply, alpha, flag, best_move);
+	delete best_move;
 	return alpha;
 }
