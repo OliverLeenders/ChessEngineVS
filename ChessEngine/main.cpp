@@ -158,7 +158,7 @@ void uci_console() {
 				board.transposition_table->clear();
 			}
 			else if ((*split)[0] == "uci") {
-				std::cout << "id name Leandor v1.1" << std::endl;
+				std::cout << "id name Leandor v1.2" << std::endl;
 				std::cout << "id author Oliver Leenders" << std::endl;
 				std::cout << "option name Move Overhead type spin default 25 min 0 max 5000" << std::endl;
 				std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
