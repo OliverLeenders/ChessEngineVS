@@ -17,15 +17,18 @@ Moved from ChessEngine repo which was compiled using gcc for linux, to new repo 
 * Quiescence Search
 * Iterative Deepening with PV reuse
 
+## Current Strength
+* Version 1.2 gained a rating of 1842 Elo points in CCRL Blitz.
+
 ## Roadmap
-* uci console (already partially implemented) -- supports ```go depth``` and ```go movetime```
+* switch to bitboards
 * Zobrist hashing speedup in make move
 
 ## usage
 
 ### Binaries
 
-Pre-compiled binaries for Windows Systems only are available in the releases section. Other systems are not officially supported, however, you can try to compile for them yourself.
+Pre-compiled binaries for Windows Systems (64 Bit) only are available in the releases section. Other systems are not officially supported, however, you can try to compile for them yourself.
 
 ### entering a position 
 
