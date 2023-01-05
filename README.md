@@ -1,6 +1,6 @@
 # ChessEngineVS
 
-Moved from ChessEngine repo which was compiled using gcc for linux, to new repo based in MS Visual Studio.
+Moved from ChessEngine repo (now private) which was compiled using gcc for linux, to new repo based in MS Visual Studio.
 
 ## Features
 * Mailbox (single 64 square array) board representation.
